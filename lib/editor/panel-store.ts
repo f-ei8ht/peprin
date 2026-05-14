@@ -32,7 +32,7 @@ export interface PanelSizes {
 
 export const DEFAULT_PANEL_SIZES: PanelSizes = {
   outer: { middle: 65, timeline: 35 },
-  inner: { left: 22, center: 52, right: 26 },
+  inner: { left: 24, center: 48, right: 28 },
 }
 
 /** Quick layout presets surfaced in the editor header. */
@@ -42,31 +42,31 @@ export const LAYOUT_PRESETS = {
     description: "Equal preview and timeline space.",
     sizes: {
       outer: { middle: 60, timeline: 40 },
-      inner: { left: 22, center: 52, right: 26 },
+      inner: { left: 24, center: 48, right: 28 },
     },
   },
   preview: {
     label: "Preview",
     description: "Big preview, slim timeline.",
     sizes: {
-      outer: { middle: 75, timeline: 25 },
-      inner: { left: 20, center: 56, right: 24 },
+      outer: { middle: 78, timeline: 22 },
+      inner: { left: 18, center: 60, right: 22 },
     },
   },
   timeline: {
     label: "Timeline",
     description: "Tall timeline for finer edits.",
     sizes: {
-      outer: { middle: 50, timeline: 50 },
-      inner: { left: 22, center: 52, right: 26 },
+      outer: { middle: 48, timeline: 52 },
+      inner: { left: 24, center: 48, right: 28 },
     },
   },
   cinema: {
     label: "Cinema",
     description: "Hide chrome — focus on the canvas.",
     sizes: {
-      outer: { middle: 90, timeline: 10 },
-      inner: { left: 16, center: 68, right: 16 },
+      outer: { middle: 92, timeline: 8 },
+      inner: { left: 14, center: 72, right: 14 },
     },
   },
 } as const
@@ -130,7 +130,7 @@ export const usePanelStore = create<PanelState>()(
       partialize: (state) => ({ sizes: state.sizes }),
       // Bump this whenever DEFAULT_PANEL_SIZES or LAYOUT_PRESETS change so
       // users see the new defaults instead of being stuck with old saved sizes.
-      version: 3,
+      version: 4,
       migrate: () => ({ sizes: DEFAULT_PANEL_SIZES }),
     }
   )

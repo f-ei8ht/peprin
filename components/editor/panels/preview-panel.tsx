@@ -60,7 +60,7 @@ export function PreviewPanel() {
       </div>
 
       {/* Viewport */}
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950 p-3">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-950 p-2">
         <div
           ref={viewportRef}
           className="relative flex size-full min-h-0 min-w-0 items-center justify-center"
@@ -198,9 +198,7 @@ function computeFitScale(
   ) {
     return 1
   }
-  // Leave a clear margin around the canvas so it doesn't crowd the side
-  // panels and toolbar.
-  const FIT_MARGIN = 0.78
+  const FIT_MARGIN = 0.90
   return (
     Math.min(viewport.width / canvas.width, viewport.height / canvas.height) *
     FIT_MARGIN
