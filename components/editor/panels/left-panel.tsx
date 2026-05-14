@@ -8,10 +8,18 @@ import {
 } from "@phosphor-icons/react/dist/ssr"
 
 import { PanelShell } from "@/components/editor/panel-shell"
+import { MediaTab } from "@/components/editor/panels/media/media-tab"
 import { useEditorStore, type LeftTab } from "@/lib/editor/editor-store"
 import { cn } from "@/lib/utils"
 
-const TABS: { id: LeftTab; label: string; icon: React.ComponentType<{ size?: number; weight?: "bold" | "duotone" | "fill" | "regular" }> }[] = [
+const TABS: {
+  id: LeftTab
+  label: string
+  icon: React.ComponentType<{
+    size?: number
+    weight?: "bold" | "duotone" | "fill" | "regular"
+  }>
+}[] = [
   { id: "media", label: "Media", icon: FilmStrip },
   { id: "audio", label: "Audio", icon: MusicNote },
   { id: "text", label: "Text", icon: TextAa },
@@ -59,16 +67,26 @@ export function LeftPanel() {
               {TABS.find((t) => t.id === tab)?.label}
             </span>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="text-foreground text-sm font-medium">
-              {TABS.find((t) => t.id === tab)?.label} coming soon
-            </p>
-            <p className="text-muted-foreground max-w-[24ch] text-xs leading-relaxed">
-              This panel fills in over the next iterations.
-            </p>
+          <div className="flex min-h-0 flex-1 flex-col">
+            {tab === "media" ? (
+              <MediaTab />
+            ) : (
+              <ComingSoonPlaceholder label={TABS.find((t) => t.id === tab)?.label ?? ""} />
+            )}
           </div>
         </div>
       </div>
     </PanelShell>
+  )
+}
+
+function ComingSoonPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+      <p className="text-foreground text-sm font-medium">{label} coming soon</p>
+      <p className="text-muted-foreground max-w-[24ch] text-xs leading-relaxed">
+        This panel fills in over the next iterations.
+      </p>
+    </div>
   )
 }

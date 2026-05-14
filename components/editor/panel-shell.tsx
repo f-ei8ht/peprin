@@ -23,10 +23,10 @@ export function PanelShell({
   hideHeader,
 }: PanelShellProps) {
   return (
-    <div className={cn("bg-card flex h-full flex-col overflow-hidden", className)}>
+    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
       {!hideHeader && (title || trailing) && (
-        <div className="flex h-9 shrink-0 items-center justify-between border-b px-3">
-          <div className="text-foreground/80 truncate text-xs font-medium uppercase tracking-wide">
+        <div className="bg-background flex h-9 shrink-0 items-center justify-between border-b px-3">
+          <div className="text-foreground/80 truncate text-[11px] font-semibold uppercase tracking-wider">
             {title}
           </div>
           {trailing && <div className="flex items-center gap-1">{trailing}</div>}

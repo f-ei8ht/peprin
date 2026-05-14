@@ -23,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/site/logo"
 import { ThemeToggle } from "@/components/site/theme-toggle"
+import { LayoutPicker } from "@/components/editor/layout-picker"
 import { SaveIndicator } from "@/components/editor/save-indicator"
 import { useEditorStore } from "@/lib/editor/editor-store"
 import { renameProject } from "@/lib/projects/repo"
@@ -46,6 +47,7 @@ export function EditorHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        <LayoutPicker />
         <Button variant="outline" size="sm" disabled>
           <Sparkle size={14} weight="fill" className="text-amber-500" />
           HeyGen

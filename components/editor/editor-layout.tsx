@@ -11,99 +11,108 @@ import { usePanelStore } from "@/lib/editor/panel-store"
 import { cn } from "@/lib/utils"
 
 const OUTER_IDS = {
+  middle: "middle",
+  timeline: "timeline",
+} as const
+
+const INNER_IDS = {
   left: "left",
   center: "center",
   right: "right",
 } as const
 
-const INNER_IDS = {
-  preview: "preview",
-  timeline: "timeline",
-} as const
-
 export function EditorLayout() {
   const sizes = usePanelStore((s) => s.sizes)
+  const revision = usePanelStore((s) => s.revision)
   const setOuter = usePanelStore((s) => s.setOuter)
   const setInner = usePanelStore((s) => s.setInner)
 
   const handleOuterChanged = React.useCallback(
     (layout: Layout) => {
       setOuter({
-        left: layout[OUTER_IDS.left] ?? sizes.outer.left,
-        center: layout[OUTER_IDS.center] ?? sizes.outer.center,
-        right: layout[OUTER_IDS.right] ?? sizes.outer.right,
+        middle: layout[OUTER_IDS.middle] ?? sizes.outer.middle,
+        timeline: layout[OUTER_IDS.timeline] ?? sizes.outer.timeline,
       })
     },
-    [setOuter, sizes.outer.left, sizes.outer.center, sizes.outer.right]
+    [setOuter, sizes.outer.middle, sizes.outer.timeline]
   )
 
   const handleInnerChanged = React.useCallback(
     (layout: Layout) => {
       setInner({
-        preview: layout[INNER_IDS.preview] ?? sizes.inner.preview,
-        timeline: layout[INNER_IDS.timeline] ?? sizes.inner.timeline,
+        left: layout[INNER_IDS.left] ?? sizes.inner.left,
+        center: layout[INNER_IDS.center] ?? sizes.inner.center,
+        right: layout[INNER_IDS.right] ?? sizes.inner.right,
       })
     },
-    [setInner, sizes.inner.preview, sizes.inner.timeline]
+    [setInner, sizes.inner.left, sizes.inner.center, sizes.inner.right]
   )
 
   return (
     <div className="bg-background relative flex h-[calc(100svh-3rem)] min-h-0 w-full flex-col">
       <Group
-        orientation="horizontal"
+        // Re-mount when defaults change (preset switch) so child Panels pick
+        // up the new sizes. v4 reads defaultSize on mount only.
+        key={revision}
+        orientation="vertical"
         className="h-full w-full"
         onLayoutChanged={handleOuterChanged}
       >
         <Panel
-          id={OUTER_IDS.left}
-          defaultSize={sizes.outer.left}
-          minSize={14}
-          maxSize={32}
-          className="bg-card border-r"
-        >
-          <LeftPanel />
-        </Panel>
-
-        <PanelDivider direction="vertical" />
-
-        <Panel
-          id={OUTER_IDS.center}
-          defaultSize={sizes.outer.center}
+          id={OUTER_IDS.middle}
+          defaultSize={sizes.outer.middle}
           minSize={30}
         >
           <Group
-            orientation="vertical"
+            orientation="horizontal"
             className="h-full w-full"
             onLayoutChanged={handleInnerChanged}
           >
             <Panel
-              id={INNER_IDS.preview}
-              defaultSize={sizes.inner.preview}
-              minSize={25}
+              id={INNER_IDS.left}
+              defaultSize={sizes.inner.left}
+              minSize={14}
+              maxSize={40}
+              className="bg-foreground/[0.015] dark:bg-foreground/[0.02]"
+            >
+              <LeftPanel />
+            </Panel>
+
+            <PanelDivider direction="vertical" />
+
+            <Panel
+              id={INNER_IDS.center}
+              defaultSize={sizes.inner.center}
+              minSize={30}
+              className="bg-background"
             >
               <PreviewPanel />
             </Panel>
-            <PanelDivider direction="horizontal" />
+
+            <PanelDivider direction="vertical" />
+
             <Panel
-              id={INNER_IDS.timeline}
-              defaultSize={sizes.inner.timeline}
-              minSize={20}
+              id={INNER_IDS.right}
+              defaultSize={sizes.inner.right}
+              minSize={16}
+              maxSize={40}
+              className="bg-foreground/[0.015] dark:bg-foreground/[0.02]"
             >
-              <TimelinePanel />
+              <RightPanel />
             </Panel>
           </Group>
         </Panel>
 
-        <PanelDivider direction="vertical" />
+        <PanelDivider direction="horizontal" />
 
         <Panel
-          id={OUTER_IDS.right}
-          defaultSize={sizes.outer.right}
-          minSize={16}
-          maxSize={36}
-          className="bg-card border-l"
+          id={OUTER_IDS.timeline}
+          defaultSize={sizes.outer.timeline}
+          minSize={15}
+          maxSize={70}
+          className="bg-foreground/[0.015] dark:bg-foreground/[0.02]"
         >
-          <RightPanel />
+          <TimelinePanel />
         </Panel>
       </Group>
     </div>
@@ -119,19 +128,19 @@ function PanelDivider({
   return (
     <Separator
       className={cn(
-        "group/handle relative flex items-center justify-center transition-colors",
+        "group/handle bg-border relative flex shrink-0 items-center justify-center transition-colors",
         direction === "vertical"
-          ? "w-1.5 cursor-col-resize"
-          : "h-1.5 cursor-row-resize",
-        "data-[separator]:hover:bg-foreground/10"
+          ? "w-1 cursor-col-resize hover:w-1.5"
+          : "h-1 cursor-row-resize hover:h-1.5",
+        "data-[separator]:hover:bg-foreground/40 data-[separator-active=true]:bg-foreground/60"
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "bg-border block rounded-full transition-colors",
-          direction === "vertical" ? "h-8 w-0.5" : "h-0.5 w-8",
-          "group-hover/handle:bg-foreground/40"
+          "bg-foreground/40 absolute block rounded-full opacity-0 transition-opacity",
+          "group-hover/handle:opacity-100",
+          direction === "vertical" ? "h-10 w-0.5" : "h-0.5 w-10"
         )}
       />
     </Separator>
