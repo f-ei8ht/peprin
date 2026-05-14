@@ -157,10 +157,10 @@ function ProjectNameInput() {
       }}
       style={{ fieldSizing: "content" } as React.CSSProperties}
       className={cn(
-        "h-7 min-w-[6rem] max-w-[20rem] rounded-md bg-transparent px-2 text-sm font-medium outline-none",
+        "h-7 min-w-[6rem] max-w-[20rem] rounded-md bg-foreground/[0.04] px-2 text-sm font-medium outline-none",
         editing
           ? "ring-ring/40 cursor-text ring-2"
-          : "hover:bg-foreground/[0.04] cursor-pointer"
+          : "hover:bg-foreground/[0.07] cursor-pointer"
       )}
     />
   )

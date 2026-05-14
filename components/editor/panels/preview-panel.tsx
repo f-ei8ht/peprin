@@ -5,6 +5,8 @@ import {
   ArrowsOut,
   Pause,
   Play,
+  SkipBack,
+  SkipForward,
 } from "@phosphor-icons/react/dist/ssr"
 
 import { Button } from "@/components/ui/button"
@@ -23,7 +25,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useElementSize } from "@/hooks/use-element-size"
+import { usePlayback } from "@/hooks/use-playback"
 import { useEditorStore } from "@/lib/editor/editor-store"
+import { usePlaybackStore } from "@/lib/editor/playback-store"
 import { formatTimecode } from "@/lib/time"
 
 const ZOOM_PRESETS = [25, 50, 75, 100, 150, 200] as const
@@ -32,11 +36,85 @@ type ZoomMode = "fit" | number
 
 export function PreviewPanel() {
   const project = useEditorStore((s) => s.project)
-  const [playing, setPlaying] = React.useState(false)
-  const [zoomMode, setZoomMode] = React.useState<ZoomMode>("fit")
 
+  // Hooks — called unconditionally before any early return
+  const [zoomMode, setZoomMode] = React.useState<ZoomMode>("fit")
+  const { playback, compositor } = usePlayback(project?.settings)
+  const playing = usePlaybackStore((s) => s.playing)
+  const currentTime = usePlaybackStore((s) => s.currentTime)
+  const duration = usePlaybackStore((s) => s.duration)
   const viewportRef = React.useRef<HTMLDivElement>(null)
+  const canvasMountRef = React.useRef<HTMLDivElement>(null)
   const viewport = useElementSize(viewportRef)
+  const rafRef = React.useRef<number | null>(null)
+  const scrubRef = React.useRef<{
+    active: boolean
+    pointerId: number | null
+  }>({ active: false, pointerId: null })
+
+  // Render loop — self-referencing via ref
+  const renderFrame = React.useRef<() => void>(() => {})
+
+  React.useLayoutEffect(() => {
+    const pm = playback
+    renderFrame.current = () => {
+      const f = project?.settings.fps ?? 30
+      compositor.render(pm.currentTime, f)
+      const mount = canvasMountRef.current
+      if (mount) {
+        const canvas = mount.firstChild as HTMLCanvasElement | null
+        if (canvas) {
+          const ctx = canvas.getContext("2d")
+          if (ctx)
+            compositor.drawToContext(ctx, 0, 0, canvas.width, canvas.height)
+        }
+      }
+      rafRef.current = requestAnimationFrame(renderFrame.current)
+    }
+  })
+
+  React.useEffect(() => {
+    rafRef.current = requestAnimationFrame(renderFrame.current)
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
+  // Mount the output canvas
+  React.useEffect(() => {
+    const mount = canvasMountRef.current
+    if (!mount || !project) return
+    const cw = project.settings.canvasSize.width
+    const ch = project.settings.canvasSize.height
+    const canvas = document.createElement("canvas")
+    canvas.width = cw
+    canvas.height = ch
+    canvas.style.display = "block"
+    mount.innerHTML = ""
+    mount.appendChild(canvas)
+    compositor.invalidate()
+  }, [project, compositor])
+
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+
+      if (e.code === "Space") {
+        e.preventDefault()
+        playback.toggle()
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault()
+        playback.frameBackward()
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault()
+        playback.frameForward()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [playback])
 
   if (!project) return null
 
@@ -47,15 +125,25 @@ export function PreviewPanel() {
   const sceneHeight = canvasSize.height * scale
   const zoomPercent = Math.round(scale * 100)
   const isFit = zoomMode === "fit"
+  const isMounted = viewport.width > 0 && viewport.height > 0
+
+  const scrubFromEvent = (clientX: number) => {
+    const mount = canvasMountRef.current
+    if (!mount || duration <= 0) return
+    const rect = mount.getBoundingClientRect()
+    const ratio = (clientX - rect.left) / rect.width
+    playback.seek(Math.max(0, Math.min(duration, ratio * duration)))
+  }
 
   return (
     <div className="bg-background flex h-full min-h-0 flex-col">
+      {/* Header */}
       <div className="bg-background flex h-9 shrink-0 items-center justify-between border-b px-3">
         <span className="text-foreground/80 text-[11px] font-semibold uppercase tracking-wider">
           Preview
         </span>
         <span className="text-muted-foreground font-mono text-xs tabular-nums">
-          {formatTimecode(0)} / {formatTimecode(0)}
+          {formatTimecode(currentTime)} / {formatTimecode(duration)}
         </span>
       </div>
 
@@ -65,35 +153,98 @@ export function PreviewPanel() {
           ref={viewportRef}
           className="relative flex size-full min-h-0 min-w-0 items-center justify-center"
         >
-          <PreviewStage
-            project={project}
-            sceneWidth={sceneWidth}
-            sceneHeight={sceneHeight}
-            visible={viewport.width > 0 && viewport.height > 0}
-          />
+          {isMounted ? (
+            <div
+              ref={canvasMountRef}
+              className="relative overflow-hidden border border-white/10 shadow-2xl"
+              style={{
+                width: sceneWidth,
+                height: sceneHeight,
+                cursor: duration > 0 ? "ew-resize" : "default",
+              }}
+              onPointerDown={(e) => {
+                e.preventDefault()
+                ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+                scrubRef.current = { active: true, pointerId: e.pointerId }
+                playback.setScrubbing(true)
+                scrubFromEvent(e.clientX)
+              }}
+              onPointerMove={(e) => {
+                if (
+                  !scrubRef.current.active ||
+                  e.pointerId !== scrubRef.current.pointerId
+                )
+                  return
+                scrubFromEvent(e.clientX)
+              }}
+              onPointerUp={(e) => {
+                if (e.pointerId !== scrubRef.current.pointerId) return
+                scrubRef.current = { active: false, pointerId: null }
+                playback.setScrubbing(false)
+              }}
+              onPointerCancel={() => {
+                scrubRef.current = { active: false, pointerId: null }
+                playback.setScrubbing(false)
+              }}
+            />
+          ) : null}
         </div>
       </div>
 
       {/* Toolbar */}
       <div className="bg-background grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-t px-3">
-        <div className="flex min-w-0 items-center text-muted-foreground font-mono text-xs tabular-nums">
-          {formatTimecode(0)}
-          <span className="px-2">/</span>
-          {formatTimecode(0)}
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground font-mono text-xs tabular-nums">
+            {formatTimecode(currentTime)}
+          </span>
+          <span className="text-muted-foreground/60 px-1 text-xs">/</span>
+          <span className="text-muted-foreground/60 font-mono text-xs tabular-nums">
+            {formatTimecode(duration)}
+          </span>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={playing ? "Pause" : "Play"}
-          onClick={() => setPlaying((v) => !v)}
-        >
-          {playing ? (
-            <Pause size={14} weight="fill" />
-          ) : (
-            <Play size={14} weight="fill" />
-          )}
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Jump to start"
+                onClick={() => playback.jumpToStart()}
+              >
+                <SkipBack size={14} weight="bold" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Jump to start</TooltipContent>
+          </Tooltip>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={playing ? "Pause" : "Play"}
+            onClick={() => playback.toggle()}
+          >
+            {playing ? (
+              <Pause size={14} weight="fill" />
+            ) : (
+              <Play size={14} weight="fill" />
+            )}
+          </Button>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Jump to end"
+                onClick={() => playback.jumpToEnd()}
+              >
+                <SkipForward size={14} weight="bold" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Jump to end</TooltipContent>
+          </Tooltip>
+        </div>
 
         <div className="flex items-center gap-2 justify-self-end">
           <Select
@@ -142,50 +293,6 @@ export function PreviewPanel() {
   )
 }
 
-function PreviewStage({
-  project,
-  sceneWidth,
-  sceneHeight,
-  visible,
-}: {
-  project: NonNullable<ReturnType<typeof useEditorStore.getState>["project"]>
-  sceneWidth: number
-  sceneHeight: number
-  visible: boolean
-}) {
-  const bgColor =
-    project.settings.background.type === "color"
-      ? project.settings.background.color
-      : "#000000"
-
-  if (!visible || sceneWidth <= 0 || sceneHeight <= 0) return null
-
-  return (
-    <div
-      role="img"
-      aria-label="Project preview"
-      className="relative overflow-hidden border border-white/10 shadow-2xl"
-      style={{
-        width: sceneWidth,
-        height: sceneHeight,
-        background: bgColor,
-      }}
-    >
-      <div className="absolute inset-0 grid place-items-center">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="font-mono text-xs text-white/40">
-            {project.settings.canvasSize.width} ×{" "}
-            {project.settings.canvasSize.height} · {project.settings.fps} fps
-          </span>
-          <p className="text-sm font-medium text-white/70">
-            Add media to see it here
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function computeFitScale(
   canvas: { width: number; height: number },
   viewport: { width: number; height: number }
@@ -198,7 +305,7 @@ function computeFitScale(
   ) {
     return 1
   }
-  const FIT_MARGIN = 0.90
+  const FIT_MARGIN = 0.9
   return (
     Math.min(viewport.width / canvas.width, viewport.height / canvas.height) *
     FIT_MARGIN
