@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 interface LogoProps {
   className?: string
-  href?: string
+  href?: string | null
   showWordmark?: boolean
 }
 
