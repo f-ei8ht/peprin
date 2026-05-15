@@ -27,6 +27,7 @@ import { Logo } from "@/components/site/logo"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 import { LayoutPicker } from "@/components/editor/layout-picker"
 import { KeyboardShortcutsDialog } from "@/components/editor/panels/keyboard-shortcuts-dialog"
+import { ExportDialog } from "@/components/editor/panels/export-dialog"
 import { SaveIndicator } from "@/components/editor/save-indicator"
 import { useEditorStore } from "@/lib/editor/editor-store"
 import { useHeyGenJobStore } from "@/lib/heygen/job-store"
@@ -37,35 +38,40 @@ import { cn } from "@/lib/utils"
 
 export function EditorHeader() {
   const activeJobs = useHeyGenJobStore((s) => s.activeJobCount)
+  const [exportOpen, setExportOpen] = React.useState(false)
 
   return (
-    <header className="bg-background flex h-12 items-center justify-between border-b px-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <Link
-          href="/projects"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeft size={14} weight="bold" />
-          <span className="hidden sm:inline">Projects</span>
-        </Link>
-        <Separator orientation="vertical" className="mx-2 h-5" />
-        <ProjectMenu />
-        <ProjectNameInput />
-        <Separator orientation="vertical" className="mx-1 h-5" />
-        <UndoRedoButtons />
-        <SaveIndicator className="ml-2 hidden sm:inline-flex" />
-      </div>
+    <>
+      <header className="bg-background flex h-12 items-center justify-between border-b px-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href="/projects"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+          >
+            <ArrowLeft size={14} weight="bold" />
+            <span className="hidden sm:inline">Projects</span>
+          </Link>
+          <Separator orientation="vertical" className="mx-2 h-5" />
+          <ProjectMenu onExport={() => setExportOpen(true)} />
+          <ProjectNameInput />
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <UndoRedoButtons />
+          <SaveIndicator className="ml-2 hidden sm:inline-flex" />
+        </div>
 
-      <div className="flex items-center gap-2">
-        <LayoutPicker />
-        <HeyGenButton activeCount={activeJobs} />
-        <Button size="sm" disabled>
-          <Export size={14} weight="bold" />
-          Export
-        </Button>
-        <ThemeToggle className="hidden sm:inline-flex" />
-      </div>
-    </header>
+        <div className="flex items-center gap-2">
+          <LayoutPicker />
+          <HeyGenButton activeCount={activeJobs} />
+          <Button size="sm" onClick={() => setExportOpen(true)}>
+            <Export size={14} weight="bold" />
+            Export
+          </Button>
+          <ThemeToggle className="hidden sm:inline-flex" />
+        </div>
+      </header>
+
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
+    </>
   )
 }
 
@@ -90,7 +96,7 @@ function HeyGenButton({ activeCount }: { activeCount: number }) {
   )
 }
 
-function ProjectMenu() {
+function ProjectMenu({ onExport }: { onExport: () => void }) {
   const router = useRouter()
   const project = useEditorStore((s) => s.project)
   const shortcutsOpen = useEditorStore((s) => s.shortcutsDialogOpen)
@@ -126,7 +132,7 @@ function ProjectMenu() {
           <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
             Keyboard shortcuts
           </DropdownMenuItem>
-          <DropdownMenuItem disabled>Export…</DropdownMenuItem>
+          <DropdownMenuItem onClick={onExport}>Export…</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 
 const NAV_LINKS = [
   { label: "Editor", href: "/editor" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
+  { label: "Blog", href: "/blog" },
+  { label: "Changelog", href: "/changelog" },
 ] as const
 
 export function Header() {
