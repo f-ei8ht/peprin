@@ -76,7 +76,7 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     const track: TimelineTrack = {
       id,
       type,
-      name: name ?? (type === "video" ? "Video" : "Audio"),
+      name: name ?? (type === "video" ? "Video" : type === "audio" ? "Audio" : type === "text" ? "Text" : type === "sticker" ? "Stickers" : "Subtitles"),
       elements: [],
       muted: false,
       hidden: false,

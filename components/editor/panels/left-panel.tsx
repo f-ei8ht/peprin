@@ -5,11 +5,20 @@ import {
   MusicNote,
   TextAa,
   UsersThree,
+  SmileySticker,
+  MagicWand,
+  SquareHalf,
+  ClosedCaptioning,
 } from "@phosphor-icons/react/dist/ssr"
 
 import { PanelShell } from "@/components/editor/panel-shell"
 import { MediaTab } from "@/components/editor/panels/media/media-tab"
 import { AvatarsTab } from "@/components/editor/panels/avatars/avatars-tab"
+import { TextTab } from "@/components/editor/panels/text/text-tab"
+import { StickersTab } from "@/components/editor/panels/stickers/stickers-tab"
+import { EffectsTab } from "@/components/editor/panels/effects/effects-tab"
+import { MasksTab } from "@/components/editor/panels/masks/masks-tab"
+import { SubtitlesTab } from "@/components/editor/panels/subtitles/subtitles-tab"
 import { useEditorStore, type LeftTab } from "@/lib/editor/editor-store"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +33,10 @@ const TABS: {
   { id: "media", label: "Media", icon: FilmStrip },
   { id: "audio", label: "Audio", icon: MusicNote },
   { id: "text", label: "Text", icon: TextAa },
+  { id: "stickers", label: "Stickers", icon: SmileySticker },
+  { id: "effects", label: "Effects", icon: MagicWand },
+  { id: "masks", label: "Masks", icon: SquareHalf },
+  { id: "subtitles", label: "Subtitles", icon: ClosedCaptioning },
   { id: "avatars", label: "Avatars", icon: UsersThree },
 ]
 
@@ -73,6 +86,16 @@ export function LeftPanel() {
               <MediaTab />
             ) : tab === "avatars" ? (
               <AvatarsTab />
+            ) : tab === "text" ? (
+              <TextTab />
+            ) : tab === "stickers" ? (
+              <StickersTab />
+            ) : tab === "effects" ? (
+              <EffectsTab />
+            ) : tab === "masks" ? (
+              <MasksTab />
+            ) : tab === "subtitles" ? (
+              <SubtitlesTab />
             ) : (
               <ComingSoonPlaceholder label={TABS.find((t) => t.id === tab)?.label ?? ""} />
             )}

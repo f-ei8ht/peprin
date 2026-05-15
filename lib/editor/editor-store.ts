@@ -8,7 +8,7 @@ import type { ProjectRecord } from "@/lib/db/types"
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error"
 
-export type LeftTab = "media" | "audio" | "text" | "avatars"
+export type LeftTab = "media" | "audio" | "text" | "stickers" | "effects" | "masks" | "subtitles" | "avatars"
 export type RightTab = "inspector" | "settings" | "heygen"
 
 interface EditorState {

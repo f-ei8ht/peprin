@@ -28,7 +28,7 @@ export interface ProjectSettings {
 
 // --- Timeline types ---
 
-export type TrackType = "video" | "audio"
+export type TrackType = "video" | "audio" | "text" | "sticker" | "subtitle"
 
 export interface TimelineTrack {
   id: string
@@ -39,7 +39,7 @@ export interface TimelineTrack {
   hidden: boolean
 }
 
-export type ElementType = "video" | "image" | "audio"
+export type ElementType = "video" | "image" | "audio" | "text" | "sticker" | "subtitle"
 
 export interface TimelineElement {
   id: string
@@ -62,6 +62,21 @@ export interface TimelineElement {
   scaleY: number
   rotation: number
   opacity: number
+  /** Text-specific params */
+  textContent?: string
+  fontFamily?: string
+  fontSize?: number
+  fontColor?: string
+  fontWeight?: string
+  textAlign?: string
+  textStrokeColor?: string
+  textStrokeWidth?: number
+  textShadowColor?: string
+  textShadowBlur?: number
+  textBackgroundColor?: string
+  /** Native dimensions of the source media */
+  nativeWidth?: number
+  nativeHeight?: number
 }
 
 export interface TimelineSnapshot {

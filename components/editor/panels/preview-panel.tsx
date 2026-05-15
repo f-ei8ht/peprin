@@ -117,8 +117,14 @@ export function PreviewPanel() {
   const buildLayers = React.useCallback((): CompositorLayer[] => {
     const layers: CompositorLayer[] = []
     for (const track of tracks) {
+      if (track.hidden) continue
       for (const el of track.elements) {
         const asset = mediaAssets.find((a) => a.id === el.mediaId)
+        const isVideo = el.type === "video"
+        const isImage = el.type === "image"
+        const isSticker = el.type === "sticker"
+        const hasSource = isVideo || isImage || isSticker
+
         layers.push({
           id: el.id,
           type: el.type,
@@ -131,9 +137,24 @@ export function PreviewPanel() {
           scaleY: el.scaleY,
           rotation: el.rotation,
           opacity: el.opacity,
-          sourceUrl: asset?.thumbnailDataUrl,
-          videoBlobUrl: el.type === "video" ? videoBlobUrls.get(el.mediaId) : undefined,
+          sourceUrl: hasSource ? asset?.thumbnailDataUrl : undefined,
+          videoBlobUrl: isVideo ? videoBlobUrls.get(el.mediaId) : undefined,
           name: el.name,
+          textContent: el.textContent,
+          fontFamily: el.fontFamily,
+          fontSize: el.fontSize,
+          fontColor: el.fontColor,
+          fontWeight: el.fontWeight,
+          textAlign: el.textAlign as CanvasTextAlign | undefined,
+          textStrokeColor: el.textStrokeColor,
+          textStrokeWidth: el.textStrokeWidth,
+          textShadowColor: el.textShadowColor,
+          textShadowBlur: el.textShadowBlur,
+          textBackgroundColor: el.textBackgroundColor,
+          nativeWidth: el.nativeWidth ?? asset?.width,
+          nativeHeight: el.nativeHeight ?? asset?.height,
+          effects: (el as any).effects,
+          masks: (el as any).masks,
         })
       }
     }
