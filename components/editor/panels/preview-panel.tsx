@@ -106,11 +106,12 @@ export function PreviewPanel() {
 
   // Cleanup blob URLs on unmount
   React.useEffect(() => {
+    const ref = blobUrlsRef
     return () => {
-      for (const url of blobUrlsRef.current.values()) {
+      for (const url of ref.current.values()) {
         URL.revokeObjectURL(url)
       }
-      blobUrlsRef.current.clear()
+      ref.current.clear()
     }
   }, [])
 
@@ -153,8 +154,9 @@ export function PreviewPanel() {
           textBackgroundColor: el.textBackgroundColor,
           nativeWidth: el.nativeWidth ?? asset?.width,
           nativeHeight: el.nativeHeight ?? asset?.height,
-          effects: (el as any).effects,
-          masks: (el as any).masks,
+          effects: el.effects,
+          masks: el.masks,
+          stickerId: el.stickerId,
         })
       }
     }

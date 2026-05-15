@@ -38,6 +38,24 @@ export interface TimelineTextElement {
   textBackgroundColor?: string
 }
 
+export interface FontDef {
+  family: string
+  label: string
+  category: "sans" | "serif" | "mono" | "display"
+  weights: string[]
+}
+
+export const FONT_CATALOG: FontDef[] = [
+  { family: "sans-serif", label: "Sans Serif", category: "sans", weights: ["300", "400", "600", "700"] },
+  { family: "serif", label: "Serif", category: "serif", weights: ["300", "400", "600", "700"] },
+  { family: "monospace", label: "Monospace", category: "mono", weights: ["300", "400", "600", "700"] },
+  { family: "system-ui, sans-serif", label: "System UI", category: "sans", weights: ["300", "400", "600", "700"] },
+  { family: "Georgia, serif", label: "Georgia", category: "serif", weights: ["400", "700"] },
+  { family: "Impact, sans-serif", label: "Impact", category: "display", weights: ["400"] },
+  { family: "cursive", label: "Cursive", category: "display", weights: ["400", "700"] },
+  { family: "fantasy", label: "Fantasy", category: "display", weights: ["400", "700"] },
+]
+
 export const TEXT_PRESETS: TextPreset[] = [
   {
     id: "title-bold",

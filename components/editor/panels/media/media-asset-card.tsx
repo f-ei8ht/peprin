@@ -211,12 +211,10 @@ function RenameMediaDialog({
   onOpenChange: (next: boolean) => void
   onSubmit: (name: string) => Promise<void>
 }) {
-  const [name, setName] = React.useState(asset.name)
+  const [dirtyName, setDirtyName] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
-  React.useEffect(() => {
-    if (open) setName(asset.name)
-  }, [open, asset.name])
+  const name = open ? (dirtyName ?? asset.name) : asset.name
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -240,7 +238,7 @@ function RenameMediaDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) setDirtyName(null); onOpenChange(next) }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rename media</DialogTitle>
@@ -255,7 +253,7 @@ function RenameMediaDialog({
               id="media-rename"
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setDirtyName(e.target.value)}
               maxLength={256}
             />
           </div>

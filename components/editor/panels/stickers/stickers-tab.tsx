@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Star, Heart, ArrowRight, SealCheck } from "@phosphor-icons/react/dist/ssr"
+import { Plus } from "@phosphor-icons/react/dist/ssr"
 
 import { Button } from "@/components/ui/button"
 import { useTimelineStore } from "@/lib/editor/timeline-store"
-import { BUILTIN_STICKERS, STICKER_CATEGORIES, type StickerItem } from "@/lib/stickers/types"
+import { BUILTIN_STICKERS, STICKER_CATEGORIES, drawBuiltinSticker, type StickerItem } from "@/lib/stickers/types"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 
@@ -21,30 +21,44 @@ export function StickersTab() {
       : BUILTIN_STICKERS.filter((s) => s.category === category)
 
   const handleAddSticker = (sticker: StickerItem) => {
-    let track = tracks.find((t) => t.type === "sticker")
-    if (!track) {
-      const trackId = nanoid(8)
-      addElement({
-        trackId: "__create_sticker_track__",
-        type: "sticker" as any,
-        name: sticker.name,
-        mediaId: "",
-        startTime: duration > 0 ? 0 : 0,
-        duration: 3,
-        sourceDuration: 0,
-      })
-      return
+    const existingTrack = tracks.find((t) => t.type === "sticker")
+    let trackId = existingTrack?.id
+
+    if (!existingTrack) {
+      trackId = nanoid(8)
+      useTimelineStore.getState().loadTracks([...tracks, {
+        id: trackId,
+        type: "sticker",
+        name: "Stickers",
+        elements: [],
+        muted: false,
+        hidden: false,
+      }])
     }
 
+    if (!trackId) return
+
     addElement({
-      trackId: track.id,
-      type: "sticker" as any,
+      trackId,
+      type: "sticker",
       name: sticker.name,
-      mediaId: sticker.id,
+      mediaId: "",
       startTime: duration > 0 ? 0 : 0,
       duration: 3,
       sourceDuration: 0,
     })
+
+    // Write stickerId to the newly created element
+    const state = useTimelineStore.getState()
+    const newTrack = state.tracks.find((t) => t.id === trackId)
+    if (newTrack && newTrack.elements.length > 0) {
+      const lastEl = newTrack.elements[newTrack.elements.length - 1]
+      useTimelineStore.getState().updateElement(lastEl.id, {
+        stickerId: sticker.id,
+        nativeWidth: sticker.width,
+        nativeHeight: sticker.height,
+      })
+    }
   }
 
   return (
@@ -95,10 +109,28 @@ function StickerCard({
   sticker: StickerItem
   onAdd: (sticker: StickerItem) => void
 }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const dpr = window.devicePixelRatio || 1
+    const size = 64
+    canvas.width = size * dpr
+    canvas.height = size * dpr
+    canvas.style.width = `${size}px`
+    canvas.style.height = `${size}px`
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    ctx.scale(dpr, dpr)
+    ctx.clearRect(0, 0, size, size)
+    drawBuiltinSticker(ctx, sticker.id, size, size, "currentColor")
+  }, [sticker.id])
+
   return (
     <div className="group relative flex flex-col items-center gap-1 rounded-lg border bg-card p-2 transition-colors hover:border-foreground/20">
       <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted/50">
-        <StickerIcon id={sticker.id} />
+        <canvas ref={canvasRef} className="size-12 text-foreground" />
       </div>
       <span className="text-foreground truncate text-[10px] font-medium">{sticker.name}</span>
       <Button
@@ -111,19 +143,4 @@ function StickerCard({
       </Button>
     </div>
   )
-}
-
-function StickerIcon({ id }: { id: string }) {
-  switch (id) {
-    case "star":
-      return <Star size={24} weight="fill" className="text-yellow-400" />
-    case "heart":
-      return <Heart size={24} weight="fill" className="text-red-400" />
-    case "arrow-right":
-      return <ArrowRight size={24} weight="bold" className="text-blue-400" />
-    case "check-badge":
-      return <SealCheck size={24} weight="fill" className="text-green-400" />
-    default:
-      return <Star size={24} className="text-muted-foreground" />
-  }
 }

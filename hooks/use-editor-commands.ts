@@ -23,7 +23,6 @@ import {
 } from "@/lib/editor/clipboard"
 import { useTimelineStore } from "@/lib/editor/timeline-store"
 import { useEditorStore } from "@/lib/editor/editor-store"
-import { usePlaybackStore } from "@/lib/editor/playback-store"
 import { getPlaybackManager } from "@/lib/editor/playback"
 import { updateProject } from "@/lib/projects/repo"
 import type { TimelineElement } from "@/lib/db/types"
@@ -42,9 +41,12 @@ export function useEditorCommands() {
 
   // Keep selectedIdsRef in sync
   const selectedIds = useTimelineStore((s) => s.selectedElementIds)
-  selectedIdsRef.current = selectedIds
+  React.useEffect(() => {
+    selectedIdsRef.current = selectedIds
+  })
 
   const handleAction = React.useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (action: ShortcutAction, _event: KeyboardEvent) => {
       const store = useTimelineStore.getState()
       const pm = getPlaybackManager()
@@ -351,7 +353,6 @@ export function useEditorCommands() {
           return
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
 
@@ -366,9 +367,12 @@ export function useEditorCommands() {
 function collectClipEntries(
   ids: Set<string>,
   store: ReturnType<typeof useTimelineStore.getState>
-) {
+): Array<{
+  element: TimelineElement
+  mediaKind: "video" | "image" | "audio"
+}> {
   const entries: Array<{
-    element: ReturnType<typeof store.snapshotTracks> extends Array<infer T> ? any : never
+    element: TimelineElement
     mediaKind: "video" | "image" | "audio"
   }> = []
 

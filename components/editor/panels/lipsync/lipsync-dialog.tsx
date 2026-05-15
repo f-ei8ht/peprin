@@ -41,7 +41,7 @@ export function LipsyncDialog({
   onOpenChange,
   sourceVideoUrl,
   sourceVideoName,
-  sourceAssetId,
+  sourceAssetId: _sourceAssetId,
 }: LipsyncDialogProps) {
   const project = useEditorStore((s) => s.project)
   const importRemoteFile = useMediaStore((s) => s.importRemoteFile)
@@ -221,7 +221,7 @@ export function LipsyncDialog({
         <DialogHeader>
           <DialogTitle>Lipsync</DialogTitle>
           <DialogDescription>
-            Replace audio on "{sourceVideoName}" with new lip-synced audio.
+            Replace audio on &ldquo;{sourceVideoName}&rdquo; with new lip-synced audio.
           </DialogDescription>
         </DialogHeader>
 

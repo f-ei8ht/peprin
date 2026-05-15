@@ -1,10 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
-/** Returns `true` after the first client-side render. */
+const noopSubscribe = () => () => {}
+
+/** Returns `true` after hydration. False during SSR. */
 export function useMounted() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  return mounted
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  )
 }

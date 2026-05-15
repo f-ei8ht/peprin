@@ -6,7 +6,7 @@ import { Plus } from "@phosphor-icons/react/dist/ssr"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useTimelineStore } from "@/lib/editor/timeline-store"
-import { TEXT_PRESETS, type TextPreset } from "@/lib/text/types"
+import { TEXT_PRESETS, FONT_CATALOG, type TextPreset } from "@/lib/text/types"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 
@@ -94,10 +94,10 @@ export function TextTab() {
       const lastEl = newTrack.elements[newTrack.elements.length - 1]
       useTimelineStore.getState().updateElement(lastEl.id, {
         textContent: customText,
-        fontFamily: "sans-serif",
+        fontFamily: FONT_CATALOG[0].family,
         fontSize: 48,
         fontColor: "#ffffff",
-        fontWeight: "bold",
+        fontWeight: "700",
         textAlign: "center",
         textShadowColor: "rgba(0,0,0,0.5)",
         textShadowBlur: 4,

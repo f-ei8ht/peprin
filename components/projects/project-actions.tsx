@@ -107,12 +107,10 @@ function RenameDialog({
   open: boolean
   onOpenChange: (next: boolean) => void
 }) {
-  const [name, setName] = React.useState(project.name)
+  const [dirtyName, setDirtyName] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
-  React.useEffect(() => {
-    if (open) setName(project.name)
-  }, [open, project.name])
+  const name = open ? (dirtyName ?? project.name) : project.name
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,7 +134,7 @@ function RenameDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) setDirtyName(null); onOpenChange(next) }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rename project</DialogTitle>
@@ -151,7 +149,7 @@ function RenameDialog({
               id="project-rename"
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setDirtyName(e.target.value)}
               maxLength={128}
               placeholder="Project name"
             />

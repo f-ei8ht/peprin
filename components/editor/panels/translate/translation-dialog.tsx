@@ -178,7 +178,7 @@ export function TranslationDialog({
         <DialogHeader>
           <DialogTitle>Video Translation</DialogTitle>
           <DialogDescription>
-            Translate "{sourceVideoName}" to another language with lip-sync.
+            Translate &ldquo;{sourceVideoName}&rdquo; to another language with lip-sync.
           </DialogDescription>
         </DialogHeader>
 

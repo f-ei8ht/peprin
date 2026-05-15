@@ -10,13 +10,6 @@ import { useProjectsStore } from "@/lib/projects/store"
 export function ProjectsShell() {
   const totalProjects = useProjectsStore((s) => s.projects.length)
   const isLoaded = useProjectsStore((s) => s.isLoaded)
-  const createDialogRef = React.useRef<{ open: () => void } | null>(null)
-
-  // We open the create dialog from the empty-state CTA via a small trick:
-  // the dialog handles its own open state, so we render it always and
-  // forward an "open" by re-rendering the trigger as a hidden button we
-  // click programmatically.
-  // Simpler: the empty state can render its own CreateProjectDialog instance.
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

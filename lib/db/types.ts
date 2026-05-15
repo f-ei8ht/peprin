@@ -74,9 +74,17 @@ export interface TimelineElement {
   textShadowColor?: string
   textShadowBlur?: number
   textBackgroundColor?: string
+  lineHeight?: number
+  letterSpacing?: number
+  /** Sticker-specific params */
+  stickerId?: string
   /** Native dimensions of the source media */
   nativeWidth?: number
   nativeHeight?: number
+  /** Per-clip effects (applied during compositing) */
+  effects?: import("@/lib/effects/types").ClipEffect[]
+  /** Per-clip masks (applied during compositing) */
+  masks?: import("@/lib/masks/types").ClipMask[]
 }
 
 export interface TimelineSnapshot {

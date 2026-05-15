@@ -19,33 +19,37 @@ interface EditorLoaderProps {
 export function EditorLoader({ projectId }: EditorLoaderProps) {
   const project = useEditorStore((s) => s.project)
   const setProject = useEditorStore((s) => s.setProject)
-  const [status, setStatus] = React.useState<"loading" | "ready" | "missing" | "error">(
-    "loading"
-  )
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+  const [loadState, setLoadState] = React.useState<{
+    status: "loading" | "ready" | "missing" | "error"
+    loadedId: string | null
+    errorMsg: string | null
+  }>({ status: "loading", loadedId: null, errorMsg: null })
+
+  const isLoading = loadState.loadedId !== projectId
 
   React.useEffect(() => {
     let cancelled = false
-    setStatus("loading")
-    setErrorMsg(null)
 
     getProject(projectId)
       .then((record) => {
         if (cancelled) return
         if (!record) {
-          setStatus("missing")
+          setLoadState({ status: "missing", loadedId: projectId, errorMsg: null })
           setProject(null)
           return
         }
         setProject(record)
-        setStatus("ready")
+        setLoadState({ status: "ready", loadedId: projectId, errorMsg: null })
         // Bump updatedAt so the project sorts to the top of the dashboard.
         touchProject(projectId).catch(() => {})
       })
       .catch((e) => {
         if (cancelled) return
-        setErrorMsg((e as Error).message)
-        setStatus("error")
+        setLoadState({
+          status: "error",
+          loadedId: projectId,
+          errorMsg: (e as Error).message,
+        })
       })
 
     return () => {
@@ -60,13 +64,15 @@ export function EditorLoader({ projectId }: EditorLoaderProps) {
     }
   }, [])
 
-  if (status === "loading") {
+  if (isLoading) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Spinner className="size-5" />
       </div>
     )
   }
+
+  const { status, errorMsg } = loadState
 
   if (status === "missing" || status === "error") {
     return (

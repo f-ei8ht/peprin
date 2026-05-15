@@ -11,7 +11,11 @@ export function useEventListener<K extends keyof WindowEventMap>(
   options?: { target?: Target; capture?: boolean; passive?: boolean }
 ) {
   const handlerRef = useRef(handler)
-  handlerRef.current = handler
+
+  // Keep ref in sync — must be in an effect, not during render.
+  useEffect(() => {
+    handlerRef.current = handler
+  })
 
   useEffect(() => {
     const target = options?.target ?? (typeof window !== "undefined" ? window : null)

@@ -10,7 +10,6 @@ import {
   EFFECT_DEFINITIONS,
   createEffect,
   type EffectDefinition,
-  type ClipEffect,
 } from "@/lib/effects"
 import { cn } from "@/lib/utils"
 
@@ -42,10 +41,10 @@ export function EffectsTab() {
       for (const track of tracks) {
         const el = track.elements.find((e) => e.id === clipId)
         if (el) {
-          const existingEffects = (el as any).effects ?? []
+          const existingEffects = el.effects ?? []
           updateElement(clipId, {
             effects: [...existingEffects, effect],
-          } as any)
+          })
         }
       }
     }

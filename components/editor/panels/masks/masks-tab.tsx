@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { useEditorStore } from "@/lib/editor/editor-store"
 import { useTimelineStore } from "@/lib/editor/timeline-store"
 import { MASK_DEFINITIONS, createMask, type MaskType } from "@/lib/masks"
-import { cn } from "@/lib/utils"
 
 export function MasksTab() {
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds)
@@ -23,10 +22,10 @@ export function MasksTab() {
       for (const track of tracks) {
         const el = track.elements.find((e) => e.id === clipId)
         if (el) {
-          const existingMasks = (el as any).masks ?? []
+          const existingMasks = el.masks ?? []
           updateElement(clipId, {
             masks: [...existingMasks, mask],
-          } as any)
+          })
         }
       }
     }

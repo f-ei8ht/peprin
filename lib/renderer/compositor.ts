@@ -8,6 +8,7 @@ import type { ClipEffect } from "@/lib/effects/types"
 import type { ClipMask } from "@/lib/masks/types"
 import { buildCanvasFilter } from "@/lib/effects/renderer"
 import { applyMaskToContext } from "@/lib/masks/renderer"
+import { drawBuiltinSticker } from "@/lib/stickers/types"
 
 export interface CompositorLayer {
   id: string
@@ -41,6 +42,8 @@ export interface CompositorLayer {
   /** Native dimensions of the source media (for proper scaling) */
   nativeWidth?: number
   nativeHeight?: number
+  /** Sticker ID for built-in sticker shapes */
+  stickerId?: string
   /** Effects applied to this layer */
   effects?: ClipEffect[]
   /** Masks applied to this layer */
@@ -217,20 +220,24 @@ export class Compositor {
 
     // Text layer
     if (layer.type === "text") {
-      this._drawText(ctx, layer, _w, _h)
+      this._drawText(ctx, layer, _w)
       ctx.restore()
       return
     }
 
     // Sticker layer
-    if (layer.type === "sticker" && layer.sourceUrl) {
-      const { rw, rh } = this._computeRenderSize(layer, _w, _h)
-      const cached = this._imageCache.get(layer.sourceUrl)
-      if (cached) {
-        ctx.drawImage(cached, -rw / 2, -rh / 2, rw, rh)
-      } else {
-        this._loadImage(layer.sourceUrl)
-        this._drawPlaceholder(ctx, layer, rw, rh)
+    if (layer.type === "sticker") {
+      if (layer.sourceUrl) {
+        const { rw, rh } = this._computeRenderSize(layer, _w, _h)
+        const cached = this._imageCache.get(layer.sourceUrl)
+        if (cached) {
+          ctx.drawImage(cached, -rw / 2, -rh / 2, rw, rh)
+        } else {
+          this._loadImage(layer.sourceUrl)
+          this._drawPlaceholder(ctx, layer, rw, rh)
+        }
+      } else if (layer.stickerId) {
+        this._drawStickerShape(ctx, layer, _w, _h)
       }
       ctx.restore()
       return
@@ -328,8 +335,7 @@ export class Compositor {
   private _drawText(
     ctx: OffscreenCanvasRenderingContext2D,
     layer: CompositorLayer,
-    _w: number,
-    _h: number
+    _w: number
   ) {
     const content = layer.textContent || layer.name || "Text"
     const fontSize = layer.fontSize ?? 48
@@ -422,6 +428,25 @@ export class Compositor {
     ctx.fillStyle = fontColor
     ctx.fillText(content, 0, 0)
 
+    ctx.restore()
+  }
+
+  private _drawStickerShape(
+    ctx: OffscreenCanvasRenderingContext2D,
+    layer: CompositorLayer,
+    _w: number,
+    _h: number
+  ) {
+    if (!layer.stickerId) return
+    const size = Math.min(
+      _w * layer.scaleX * 0.6,
+      _h * layer.scaleY * 0.6,
+      300
+    )
+    const stickerColor = "#ffffff"
+    ctx.save()
+    ctx.translate(-size / 2, -size / 2)
+    drawBuiltinSticker(ctx, layer.stickerId, size, size, stickerColor)
     ctx.restore()
   }
 

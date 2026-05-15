@@ -24,20 +24,22 @@ interface MobileGateProps {
  */
 export function MobileGate({ children }: MobileGateProps) {
   const router = useRouter()
-  const [show, setShow] = React.useState<boolean | null>(null)
+  const [dismissed, setDismissed] = React.useState(false)
 
-  React.useEffect(() => {
+  const [initialShow] = React.useState(() => {
+    if (typeof window === "undefined") return false
     const isMobile = window.innerWidth < 1024
     const acknowledged = localStorage.getItem(STORAGE_KEY) === "true"
-    setShow(isMobile && !acknowledged)
-  }, [])
+    return isMobile && !acknowledged
+  })
 
-  if (show === null) return null
+  const show = initialShow && !dismissed
+
   if (!show) return <>{children}</>
 
   const acknowledge = () => {
     localStorage.setItem(STORAGE_KEY, "true")
-    setShow(false)
+    setDismissed(true)
   }
 
   return (

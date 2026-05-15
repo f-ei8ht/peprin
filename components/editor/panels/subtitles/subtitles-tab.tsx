@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils"
 
 export function SubtitlesTab() {
   const [entries, setEntries] = React.useState<SubtitleEntry[]>([])
-  const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [format, setFormat] = React.useState<"srt" | "vtt">("srt")
   const tracks = useTimelineStore((s) => s.tracks)
   const currentTime = usePlaybackStore((s) => s.currentTime)

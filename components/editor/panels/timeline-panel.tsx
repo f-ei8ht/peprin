@@ -50,7 +50,6 @@ export function TimelinePanel() {
   const selectedIds = useTimelineStore((s) => s.selectedElementIds)
   const loadTracks = useTimelineStore((s) => s.loadTracks)
   const snapshotTracks = useTimelineStore((s) => s.snapshotTracks)
-  const restoreTracks = useTimelineStore((s) => s.restoreTracks)
 
   const mediaAssets = useMediaStore((s) => s.assets)
 
@@ -383,7 +382,7 @@ export function TimelinePanel() {
       window.removeEventListener("pointercancel", onUp)
       stopAutoScroll()
     }
-  }, [zoom, snapEnabled, moveElement, trimElement, tracks, findElement, snapshotTracks, startAutoScroll, stopAutoScroll])
+  }, [zoom, snapEnabled, moveElement, trimElement, updateElement, tracks, findElement, snapshotTracks, startAutoScroll, stopAutoScroll])
 
   // --- Delete selection ---
   const handleDelete = React.useCallback(() => {
