@@ -1,7 +1,7 @@
 // Domain types for projects, canvas, and timeline placeholders.
 // Keep these stable — schema migrations key off PROJECT_VERSION.
 
-export const PROJECT_VERSION = 1
+export const PROJECT_VERSION = 2
 
 export type CanvasPreset =
   | "16:9-1080p"
@@ -26,10 +26,47 @@ export interface ProjectSettings {
   background: Background
 }
 
-/** Placeholder for the real timeline that lands in 1.7. */
+// --- Timeline types ---
+
+export type TrackType = "video" | "audio"
+
+export interface TimelineTrack {
+  id: string
+  type: TrackType
+  name: string
+  elements: TimelineElement[]
+  muted: boolean
+  hidden: boolean
+}
+
+export type ElementType = "video" | "image" | "audio"
+
+export interface TimelineElement {
+  id: string
+  type: ElementType
+  name: string
+  /** References a MediaAsset id from the media library. */
+  mediaId: string
+  /** Start position on the timeline (seconds). */
+  startTime: number
+  /** Duration on the timeline (seconds). */
+  duration: number
+  /** Source trim start offset (seconds from the beginning of source media). */
+  trimStart: number
+  /** Source trim end offset (seconds from the end of source media). */
+  trimEnd: number
+  /** Visual parameters (applied during compositing). */
+  positionX: number
+  positionY: number
+  scaleX: number
+  scaleY: number
+  rotation: number
+  opacity: number
+}
+
 export interface TimelineSnapshot {
   durationMs: number
-  tracks: unknown[]
+  tracks: TimelineTrack[]
 }
 
 export interface ProjectRecord {

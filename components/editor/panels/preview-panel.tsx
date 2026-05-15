@@ -28,7 +28,10 @@ import { useElementSize } from "@/hooks/use-element-size"
 import { usePlayback } from "@/hooks/use-playback"
 import { useEditorStore } from "@/lib/editor/editor-store"
 import { usePlaybackStore } from "@/lib/editor/playback-store"
+import { useTimelineStore } from "@/lib/editor/timeline-store"
+import { useMediaStore } from "@/lib/media/store"
 import { formatTimecode } from "@/lib/time"
+import type { CompositorLayer } from "@/lib/renderer/compositor"
 
 const ZOOM_PRESETS = [25, 50, 75, 100, 150, 200] as const
 
@@ -52,6 +55,35 @@ export function PreviewPanel() {
     pointerId: number | null
   }>({ active: false, pointerId: null })
 
+  // Collect timeline layers for compositor
+  const tracks = useTimelineStore((s) => s.tracks)
+  const mediaAssets = useMediaStore((s) => s.assets)
+
+  const buildLayers = React.useCallback((): CompositorLayer[] => {
+    const layers: CompositorLayer[] = []
+    for (const track of tracks) {
+      for (const el of track.elements) {
+        const asset = mediaAssets.find((a) => a.id === el.mediaId)
+        layers.push({
+          id: el.id,
+          type: el.type,
+          startTime: el.startTime,
+          duration: el.duration,
+          trimStart: el.trimStart,
+          positionX: el.positionX,
+          positionY: el.positionY,
+          scaleX: el.scaleX,
+          scaleY: el.scaleY,
+          rotation: el.rotation,
+          opacity: el.opacity,
+          sourceUrl: asset?.thumbnailDataUrl,
+          name: el.name,
+        })
+      }
+    }
+    return layers
+  }, [tracks, mediaAssets])
+
   // Render loop — self-referencing via ref
   const renderFrame = React.useRef<() => void>(() => {})
 
@@ -59,6 +91,7 @@ export function PreviewPanel() {
     const pm = playback
     renderFrame.current = () => {
       const f = project?.settings.fps ?? 30
+      compositor.setLayers(buildLayers())
       compositor.render(pm.currentTime, f)
       const mount = canvasMountRef.current
       if (mount) {
