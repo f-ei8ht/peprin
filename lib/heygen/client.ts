@@ -20,6 +20,9 @@ import {
   type HeyGenUser,
   type HeyGenPaginatedResponse,
   type HeyGenApiResponse,
+  type CreateAvatarRequest,
+  type CreateAvatarResponse,
+  type AssetUploadResponse,
 } from "./types"
 
 const BASE = "https://api.heygen.com"
@@ -174,4 +177,38 @@ export async function listTranslationLanguages(): Promise<HeyGenApiResponse<stri
 
 export async function getCurrentUser(): Promise<HeyGenApiResponse<HeyGenUser>> {
   return request("/v3/users/me")
+}
+
+// --- Avatar Creation ---
+
+export async function createAvatar(body: CreateAvatarRequest): Promise<HeyGenApiResponse<CreateAvatarResponse>> {
+  return request("/v3/avatars", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}
+
+// --- Asset Upload ---
+
+export async function uploadAsset(file: File): Promise<HeyGenApiResponse<AssetUploadResponse>> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await fetch(`${BASE}/v3/assets`, {
+    method: "POST",
+    headers: {
+      "X-Api-Key": apiKey(),
+    },
+    body: formData,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(
+      `HeyGen API error ${res.status}: ${body?.error?.message ?? res.statusText}`
+    )
+  }
+
+  const json = await res.json()
+  return json as HeyGenApiResponse<AssetUploadResponse>
 }

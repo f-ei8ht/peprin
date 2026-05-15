@@ -1,9 +1,12 @@
 "use client"
 
+import * as React from "react"
 import { Sliders, Wrench, Sparkle } from "@phosphor-icons/react/dist/ssr"
 
 import { PanelShell } from "@/components/editor/panel-shell"
 import { HeyGenJobsPanel } from "@/components/editor/panels/heygen-jobs/jobs-panel"
+import { LipsyncDialog } from "@/components/editor/panels/lipsync/lipsync-dialog"
+import { TranslationDialog } from "@/components/editor/panels/translate/translation-dialog"
 import { useEditorStore, type RightTab } from "@/lib/editor/editor-store"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +21,9 @@ export function RightPanel() {
   const setTab = useEditorStore((s) => s.setRightTab)
   const project = useEditorStore((s) => s.project)
   const selectedCount = useEditorStore((s) => s.selectedClipIds.size)
+
+  const [lipsyncVideo, setLipsyncVideo] = React.useState<{ url: string; name: string } | null>(null)
+  const [translateVideo, setTranslateVideo] = React.useState<{ url: string; name: string } | null>(null)
 
   return (
     <PanelShell hideHeader>
@@ -56,14 +62,38 @@ export function RightPanel() {
             <InspectorPlaceholder selectedCount={selectedCount} />
           ) : tab === "heygen" ? (
             <HeyGenJobsPanel
-              onLipsyncClick={() => {}}
-              onTranslateClick={() => {}}
+              onLipsyncClick={(url, name) => setLipsyncVideo({ url, name })}
+              onTranslateClick={(url, name) => setTranslateVideo({ url, name })}
             />
           ) : (
             <ProjectInfo project={project} />
           )}
         </div>
       </div>
+
+      {/* Lipsync dialog */}
+      {lipsyncVideo && (
+        <LipsyncDialog
+          open={!!lipsyncVideo}
+          onOpenChange={(open) => {
+            if (!open) setLipsyncVideo(null)
+          }}
+          sourceVideoUrl={lipsyncVideo.url}
+          sourceVideoName={lipsyncVideo.name}
+        />
+      )}
+
+      {/* Translation dialog */}
+      {translateVideo && (
+        <TranslationDialog
+          open={!!translateVideo}
+          onOpenChange={(open) => {
+            if (!open) setTranslateVideo(null)
+          }}
+          sourceVideoUrl={translateVideo.url}
+          sourceVideoName={translateVideo.name}
+        />
+      )}
     </PanelShell>
   )
 }

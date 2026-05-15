@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { UsersThree, Sparkle, FunnelSimple } from "@phosphor-icons/react/dist/ssr"
+import { UsersThree, Sparkle, FunnelSimple, Plus, Image } from "@phosphor-icons/react/dist/ssr"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,8 @@ import type { AvatarLook } from "@/lib/heygen/types"
 
 import { AvatarCard } from "./avatar-card"
 import { AvatarGeneratorDialog } from "./avatar-generator-dialog"
+import { CreateAvatarDialog } from "./create-avatar-dialog"
+import { ImageToVideoDialog } from "./image-to-video-dialog"
 
 type AvatarFilter = "all" | "studio_avatar" | "digital_twin" | "photo_avatar"
 type OwnershipFilter = "all" | "public" | "private"
@@ -31,6 +33,8 @@ export function AvatarsTab() {
   const [ownershipFilter, setOwnershipFilter] = React.useState<OwnershipFilter>("all")
   const [selectedLook, setSelectedLook] = React.useState<AvatarLook | null>(null)
   const [generatorOpen, setGeneratorOpen] = React.useState(false)
+  const [createAvatarOpen, setCreateAvatarOpen] = React.useState(false)
+  const [imageToVideoOpen, setImageToVideoOpen] = React.useState(false)
   const prevTypeRef = React.useRef(typeFilter)
   const prevOwnershipRef = React.useRef(ownershipFilter)
 
@@ -97,6 +101,26 @@ export function AvatarsTab() {
     <div className="flex h-full flex-col">
       {/* Controls */}
       <div className="flex shrink-0 flex-col gap-2 border-b p-3">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="h-8 flex-1"
+            onClick={() => setCreateAvatarOpen(true)}
+          >
+            <Plus size={14} weight="bold" />
+            Create Avatar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 flex-1"
+            onClick={() => setImageToVideoOpen(true)}
+          >
+            <Image size={14} weight="bold" />
+            Image to Video
+          </Button>
+        </div>
+
         <Button
           size="sm"
           className="h-8 w-full"
@@ -204,6 +228,40 @@ export function AvatarsTab() {
           look={selectedLook}
         />
       )}
+
+      {/* Create Avatar dialog */}
+      <CreateAvatarDialog
+        open={createAvatarOpen}
+        onOpenChange={setCreateAvatarOpen}
+        onAvatarCreated={() => {
+          // Refresh the avatar list
+          setLooks([])
+          setNextToken(null)
+          setLoading(true)
+
+          const params = new URLSearchParams()
+          if (typeFilter !== "all") params.set("avatar_type", typeFilter)
+          if (ownershipFilter !== "all") params.set("ownership", ownershipFilter)
+          params.set("limit", "20")
+
+          fetch(`/api/heygen/avatars/looks?${params}`)
+            .then((r) => r.json())
+            .then((json) => {
+              if (json.data) {
+                setLooks(json.data)
+                setNextToken(json.next_token)
+              }
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false))
+        }}
+      />
+
+      {/* Image to Video dialog */}
+      <ImageToVideoDialog
+        open={imageToVideoOpen}
+        onOpenChange={setImageToVideoOpen}
+      />
     </div>
   )
 }

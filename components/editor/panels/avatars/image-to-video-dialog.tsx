@@ -7,8 +7,9 @@ import {
   Play,
   SpeakerHigh,
   TextAa,
-  Gear,
-  Sparkle,
+  Image,
+  Upload,
+  LinkSimple,
 } from "@phosphor-icons/react/dist/ssr"
 
 import { Button } from "@/components/ui/button"
@@ -28,45 +29,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { AvatarLook, Voice, VideoResolution, VideoAspectRatio } from "@/lib/heygen/types"
+import { Spinner } from "@/components/ui/spinner"
+import type { Voice, VideoResolution, VideoAspectRatio, Expressiveness } from "@/lib/heygen/types"
 import { useHeyGenJobStore } from "@/lib/heygen/job-store"
 import { pollHeyGenJob } from "@/lib/heygen/polling"
 import { useMediaStore } from "@/lib/media/store"
 import { useEditorStore } from "@/lib/editor/editor-store"
 
-interface AvatarGeneratorDialogProps {
+interface ImageToVideoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  look: AvatarLook
 }
 
-export function AvatarGeneratorDialog({
+export function ImageToVideoDialog({
   open,
   onOpenChange,
-  look,
-}: AvatarGeneratorDialogProps) {
+}: ImageToVideoDialogProps) {
   const project = useEditorStore((s) => s.project)
   const importRemoteFile = useMediaStore((s) => s.importRemoteFile)
   const addJob = useHeyGenJobStore((s) => s.addJob)
   const updateJob = useHeyGenJobStore((s) => s.updateJob)
   const addCompletedVideo = useHeyGenJobStore((s) => s.addCompletedVideo)
 
+  const [imageUrl, setImageUrl] = React.useState("")
+  const [imageFile, setImageFile] = React.useState<File | null>(null)
   const [script, setScript] = React.useState("")
-  const [voiceId, setVoiceId] = React.useState(look.default_voice_id ?? "")
+  const [voiceId, setVoiceId] = React.useState("")
   const [voices, setVoices] = React.useState<Voice[]>([])
   const [loadingVoices, setLoadingVoices] = React.useState(false)
   const [resolution, setResolution] = React.useState<VideoResolution>("1080p")
   const [aspectRatio, setAspectRatio] = React.useState<VideoAspectRatio>("16:9")
-  const [engine, setEngine] = React.useState<"avatar_iv" | "avatar_v">(
-    look.supported_api_engines.includes("avatar_v") ? "avatar_v" : "avatar_iv"
-  )
   const [motionPrompt, setMotionPrompt] = React.useState("")
-  const [expressiveness, setExpressiveness] = React.useState<"high" | "medium" | "low">("low")
+  const [expressiveness, setExpressiveness] = React.useState<Expressiveness>("low")
   const [generating, setGenerating] = React.useState(false)
   const [showAdvanced, setShowAdvanced] = React.useState(false)
   const voicesLoadedRef = React.useRef(false)
 
-  // Load voices on open
   React.useEffect(() => {
     if (!open || voicesLoadedRef.current) return
     voicesLoadedRef.current = true
@@ -84,9 +82,37 @@ export function AvatarGeneratorDialog({
     })()
   }, [open])
 
-  const canUseAvatarV = look.supported_api_engines.includes("avatar_v")
+  const reset = React.useCallback(() => {
+    setImageUrl("")
+    setImageFile(null)
+    setScript("")
+    setVoiceId("")
+    setMotionPrompt("")
+    setExpressiveness("low")
+    setShowAdvanced(false)
+    voicesLoadedRef.current = false
+  }, [])
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (!open) reset()
+      onOpenChange(open)
+    },
+    [onOpenChange, reset]
+  )
+
+  const handleFileSelect = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setImageFile(e.target.files?.[0] ?? null)
+    },
+    []
+  )
 
   const handleGenerate = async () => {
+    if (!imageUrl.trim() && !imageFile) {
+      toast.error("Provide an image URL or upload an image")
+      return
+    }
     if (!script.trim()) {
       toast.error("Script is required")
       return
@@ -102,33 +128,44 @@ export function AvatarGeneratorDialog({
 
     setGenerating(true)
 
-    const jobId = nanoid()
-    addJob({
-      id: jobId,
-      type: "video",
-      heygenId: "",
-      status: "pending",
-      title: `Avatar: ${look.name}`,
-    })
-
     try {
+      let imageAssetId: string | null = null
+
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append("file", imageFile)
+        const uploadRes = await fetch("/api/heygen/assets", {
+          method: "POST",
+          body: formData,
+        })
+        const uploadJson = await uploadRes.json()
+        if (!uploadRes.ok || !uploadJson.data?.asset_id) {
+          throw new Error(uploadJson.error ?? "Image upload failed")
+        }
+        imageAssetId = uploadJson.data.asset_id
+      }
+
+      const jobId = nanoid()
+      addJob({
+        id: jobId,
+        type: "video",
+        heygenId: "",
+        status: "pending",
+        title: `Image-to-Video: ${imageFile?.name ?? imageUrl.split("/").pop() ?? "image"}`,
+      })
+
       const body: Record<string, unknown> = {
-        type: "avatar",
-        avatar_id: look.id,
+        type: "image",
+        image: imageAssetId
+          ? { type: "asset_id", asset_id: imageAssetId }
+          : { type: "url", url: imageUrl.trim() },
         script: script.trim(),
         voice_id: voiceId,
-        title: `Peprin — ${look.name}`,
+        title: `Peprin — Image to Video`,
         resolution,
         aspect_ratio: aspectRatio,
-      }
-
-      if (canUseAvatarV && engine === "avatar_v") {
-        body.engine = { type: "avatar_v" }
-      }
-
-      if (look.avatar_type === "photo_avatar" && engine !== "avatar_v") {
-        if (motionPrompt) body.motion_prompt = motionPrompt
-        if (expressiveness !== "low") body.expressiveness = expressiveness
+        motion_prompt: motionPrompt || undefined,
+        expressiveness: expressiveness !== "low" ? expressiveness : undefined,
       }
 
       const res = await fetch("/api/heygen/videos", {
@@ -150,7 +187,6 @@ export function AvatarGeneratorDialog({
         description: "This may take a few minutes. We'll import it when ready.",
       })
 
-      // Poll for completion
       pollHeyGenJob(
         videoId,
         "video",
@@ -167,10 +203,9 @@ export function AvatarGeneratorDialog({
       )
         .then(async (result) => {
           if (result.video_url) {
-            // Import the generated video into the media library
             await importRemoteFile({
               url: result.video_url,
-              name: `HeyGen — ${look.name}`,
+              name: `HeyGen — Image to Video`,
               kind: "video",
               mimeType: "video/mp4",
               thumbnailUrl: result.thumbnail_url ?? undefined,
@@ -178,10 +213,9 @@ export function AvatarGeneratorDialog({
             })
             updateJob(jobId, { status: "completed" })
 
-            // Add to completed videos history
             addCompletedVideo({
               heygenId: videoId,
-              title: `Avatar: ${look.name}`,
+              title: `Image-to-Video: ${imageFile?.name ?? imageUrl.split("/").pop() ?? "image"}`,
               resultUrl: result.video_url,
               thumbnailUrl: result.thumbnail_url ?? undefined,
               duration: result.duration ?? undefined,
@@ -189,7 +223,7 @@ export function AvatarGeneratorDialog({
               createdAt: Date.now(),
             })
 
-            toast.success("Avatar video imported", {
+            toast.success("Video imported", {
               description: "Find it in your media library.",
             })
           }
@@ -204,12 +238,8 @@ export function AvatarGeneratorDialog({
           })
         })
 
-      onOpenChange(false)
+      handleOpenChange(false)
     } catch (err) {
-      updateJob(jobId, {
-        status: "failed",
-        error: (err as Error).message,
-      })
       toast.error("Couldn't start generation", {
         description: (err as Error).message,
       })
@@ -218,41 +248,56 @@ export function AvatarGeneratorDialog({
     }
   }
 
+  const canSubmit =
+    (imageUrl.trim() || imageFile) &&
+    script.trim() &&
+    voiceId
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkle size={18} weight="duotone" />
-              Generate Avatar Video
-            </DialogTitle>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Image size={18} weight="duotone" />
+            Image to Video
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {/* Avatar preview */}
-          <div className="flex gap-3">
-            <div className="bg-foreground/5 aspect-[9/16] w-16 overflow-hidden rounded">
-              {look.preview_image_url && (
-                <img
-                  src={look.preview_image_url}
-                  alt={look.name}
-                  className="size-full object-cover"
-                />
-              )}
-            </div>
-            <div className="flex flex-col justify-center gap-1">
-              <p className="text-foreground text-sm font-medium">{look.name}</p>
-              <p className="text-muted-foreground text-xs capitalize">
-                {look.avatar_type.replace("_", " ")}
+          {/* Image source */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">
+              <LinkSimple size={12} weight="bold" className="mr-1 inline" />
+              Image URL
+            </Label>
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/person.jpg"
+              className="h-8 text-xs"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
+            <span>or</span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">
+              <Upload size={12} weight="bold" className="mr-1 inline" />
+              Upload Image
+            </Label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              onChange={handleFileSelect}
+              className="text-xs"
+            />
+            {imageFile && (
+              <p className="text-muted-foreground text-[10px]">
+                Selected: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
               </p>
-              {canUseAvatarV && (
-                <span className="text-foreground/60 text-[10px] font-medium uppercase tracking-wide">
-                  Supports Avatar V
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Script */}
@@ -264,7 +309,7 @@ export function AvatarGeneratorDialog({
             <Textarea
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              placeholder="What should the avatar say? (max 5,000 chars)"
+              placeholder="What should the person say? (max 5,000 chars)"
               maxLength={5000}
               rows={4}
               className="text-xs"
@@ -329,75 +374,53 @@ export function AvatarGeneratorDialog({
             </div>
           </div>
 
-          {/* Engine (if Avatar V supported) */}
-          {canUseAvatarV && (
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Engine</Label>
-              <Select value={engine} onValueChange={(v) => setEngine(v as "avatar_iv" | "avatar_v")}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="avatar_iv">Avatar IV (default)</SelectItem>
-                  <SelectItem value="avatar_v">Avatar V (higher quality)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {/* Advanced toggle */}
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
           >
-            <Gear size={12} weight="bold" />
+            <span className="i-ph-gear-bold size-3" />
             {showAdvanced ? "Hide" : "Show"} advanced options
           </button>
 
           {showAdvanced && (
             <div className="flex flex-col gap-3 border-t pt-3">
-              {/* Motion prompt (photo avatars, Avatar IV only) */}
-              {look.avatar_type === "photo_avatar" && engine !== "avatar_v" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Motion Prompt (optional)</Label>
-                  <Input
-                    value={motionPrompt}
-                    onChange={(e) => setMotionPrompt(e.target.value)}
-                    placeholder='e.g. "nodding gently"'
-                    className="h-8 text-xs"
-                  />
-                </div>
-              )}
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Motion Prompt (optional)</Label>
+                <Input
+                  value={motionPrompt}
+                  onChange={(e) => setMotionPrompt(e.target.value)}
+                  placeholder='e.g. "nodding gently"'
+                  className="h-8 text-xs"
+                />
+              </div>
 
-              {/* Expressiveness (photo avatars, Avatar IV only) */}
-              {look.avatar_type === "photo_avatar" && engine !== "avatar_v" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Expressiveness</Label>
-                  <Select value={expressiveness} onValueChange={(v) => setExpressiveness(v as "high" | "medium" | "low")}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low (default)</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Expressiveness</Label>
+                <Select value={expressiveness} onValueChange={(v) => setExpressiveness(v as Expressiveness)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low (default)</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
           {/* Generate button */}
           <Button
             onClick={handleGenerate}
-            disabled={generating || !script.trim() || !voiceId}
+            disabled={generating || !canSubmit}
             className="w-full"
           >
             {generating ? (
               <>
-                <span className="mr-2 inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Spinner className="mr-2 size-3" />
                 Starting…
               </>
             ) : (

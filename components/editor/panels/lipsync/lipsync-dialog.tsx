@@ -47,6 +47,7 @@ export function LipsyncDialog({
   const importRemoteFile = useMediaStore((s) => s.importRemoteFile)
   const addJob = useHeyGenJobStore((s) => s.addJob)
   const updateJob = useHeyGenJobStore((s) => s.updateJob)
+  const addCompletedVideo = useHeyGenJobStore((s) => s.addCompletedVideo)
 
   const [mode, setMode] = React.useState<LipsyncMode>("speed")
   const [audioSource, setAudioSource] = React.useState<"url" | "script">("url")
@@ -183,6 +184,16 @@ export function LipsyncDialog({
               durationSec: result.duration ?? 0,
             })
             updateJob(jobId, { status: "completed" })
+
+            addCompletedVideo({
+              heygenId: lipsyncId,
+              title: title || `Lipsync: ${sourceVideoName}`,
+              resultUrl: result.video_url,
+              duration: result.duration ?? undefined,
+              jobType: "lipsync",
+              createdAt: Date.now(),
+            })
+
             toast.success("Lipsync video imported", {
               description: "Find it in your media library.",
             })

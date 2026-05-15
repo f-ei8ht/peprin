@@ -270,6 +270,59 @@ export interface SpeechResponse {
   word_timestamps: WordTimestamp[] | null
 }
 
+// --- Avatar Creation ---
+
+export type CreateAvatarType = "photo" | "digital_twin" | "prompt"
+
+export interface CreateAvatarFromFile {
+  type: "url" | "asset_id" | "base64"
+  url?: string
+  asset_id?: string
+  media_type?: string
+  data?: string
+}
+
+export interface CreateAvatarRequest {
+  type: CreateAvatarType
+  name: string
+  file?: CreateAvatarFromFile
+  prompt?: string
+  reference_images?: CreateAvatarFromFile[]
+  avatar_group_id?: string
+}
+
+export interface AvatarItem {
+  id: string
+  name: string
+  avatar_type: AvatarType
+  group_id: string | null
+  gender: string | null
+  preview_image_url: string | null
+  preview_video_url: string | null
+  default_voice_id: string | null
+  tags: string[]
+  supported_api_engines: string[]
+  status: string | null
+  image_width: number | null
+  image_height: number | null
+  preferred_orientation: "portrait" | "landscape" | "square" | null
+}
+
+export interface CreateAvatarResponse {
+  avatar_item: AvatarItem
+  avatar_group: AvatarGroup
+}
+
+// --- Asset Upload ---
+
+export interface AssetUploadResponse {
+  asset_id: string
+  file_name: string
+  file_size: number
+  mime_type: string
+  created_at: number
+}
+
 // --- User ---
 
 export interface HeyGenUser {

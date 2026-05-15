@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { listAvatarGroups } from "@/lib/heygen/client"
+import { listAvatarGroups, createAvatar } from "@/lib/heygen/client"
+import type { CreateAvatarRequest } from "@/lib/heygen/types"
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,19 @@ export async function GET(request: NextRequest) {
       token: token ?? undefined,
     })
 
+    return NextResponse.json(result)
+  } catch (error) {
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json() as CreateAvatarRequest
+    const result = await createAvatar(body)
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(

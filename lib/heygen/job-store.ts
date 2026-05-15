@@ -20,17 +20,32 @@ export interface HeyGenJob {
   mediaAssetId?: string
 }
 
+export interface CompletedVideo {
+  heygenId: string
+  title: string
+  resultUrl: string
+  thumbnailUrl?: string
+  duration?: number
+  jobType: HeyGenJobType
+  createdAt: number
+  mediaAssetId?: string
+}
+
 interface HeyGenJobState {
   jobs: HeyGenJob[]
+  completedVideos: CompletedVideo[]
   addJob: (job: Omit<HeyGenJob, "createdAt" | "updatedAt">) => void
   updateJob: (id: string, patch: Partial<HeyGenJob>) => void
   removeJob: (id: string) => void
   getJob: (id: string) => HeyGenJob | undefined
+  addCompletedVideo: (video: CompletedVideo) => void
+  removeCompletedVideo: (heygenId: string) => void
   activeJobCount: number
 }
 
 export const useHeyGenJobStore = create<HeyGenJobState>((set, get) => ({
   jobs: [],
+  completedVideos: [],
   activeJobCount: 0,
 
   addJob: (job) =>
@@ -77,4 +92,16 @@ export const useHeyGenJobStore = create<HeyGenJobState>((set, get) => ({
     }),
 
   getJob: (id) => get().jobs.find((j) => j.id === id),
+
+  addCompletedVideo: (video) =>
+    set((state) => {
+      const exists = state.completedVideos.find((v) => v.heygenId === video.heygenId)
+      if (exists) return state
+      return { completedVideos: [video, ...state.completedVideos] }
+    }),
+
+  removeCompletedVideo: (heygenId) =>
+    set((state) => ({
+      completedVideos: state.completedVideos.filter((v) => v.heygenId !== heygenId),
+    })),
 }))

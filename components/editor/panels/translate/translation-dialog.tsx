@@ -44,6 +44,7 @@ export function TranslationDialog({
   const importRemoteFile = useMediaStore((s) => s.importRemoteFile)
   const addJob = useHeyGenJobStore((s) => s.addJob)
   const updateJob = useHeyGenJobStore((s) => s.updateJob)
+  const addCompletedVideo = useHeyGenJobStore((s) => s.addCompletedVideo)
 
   const [mode, setMode] = React.useState<TranslationMode>("speed")
   const [languages, setLanguages] = React.useState<string[]>([])
@@ -140,6 +141,16 @@ export function TranslationDialog({
               durationSec: result.duration ?? 0,
             })
             updateJob(jobId, { status: "completed" })
+
+            addCompletedVideo({
+              heygenId: translationId,
+              title: title || `Translate: ${sourceVideoName}`,
+              resultUrl: result.video_url,
+              duration: result.duration ?? undefined,
+              jobType: "translation",
+              createdAt: Date.now(),
+            })
+
             toast.success("Translation imported", {
               description: `Find "${selectedLanguage}" version in your media library.`,
             })
