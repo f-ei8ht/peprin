@@ -20,6 +20,7 @@ interface EditorState {
   selectedClipIds: Set<string>
   leftTab: LeftTab
   rightTab: RightTab
+  shortcutsDialogOpen: boolean
 
   // Actions
   setProject: (project: ProjectRecord | null) => void
@@ -31,6 +32,7 @@ interface EditorState {
   setRightTab: (tab: RightTab) => void
   setSelectedClips: (ids: Iterable<string>) => void
   clearSelection: () => void
+  setShortcutsDialogOpen: (open: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -42,6 +44,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   selectedClipIds: new Set(),
   leftTab: "media",
   rightTab: "inspector",
+  shortcutsDialogOpen: false,
 
   setProject: (project) =>
     set({
@@ -68,4 +71,5 @@ export const useEditorStore = create<EditorState>((set) => ({
   setRightTab: (tab) => set({ rightTab: tab }),
   setSelectedClips: (ids) => set({ selectedClipIds: new Set(ids) }),
   clearSelection: () => set({ selectedClipIds: new Set() }),
+  setShortcutsDialogOpen: (open) => set({ shortcutsDialogOpen: open }),
 }))

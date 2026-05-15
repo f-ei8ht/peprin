@@ -289,40 +289,40 @@ export class Compositor {
       video.setAttribute("playsinline", "")
       video.crossOrigin = "anonymous"
       video.style.display = "none"
-      // Must be in DOM for some browsers to load
       document.body.appendChild(video)
       this._videoCache.set(videoUrl, video)
 
-      video.onloadedmetadata = () => {
+      const el = video
+      el.onloadedmetadata = () => {
         this._videoMetadataCache.set(videoUrl, {
-          width: video.videoWidth,
-          height: video.videoHeight,
+          width: el.videoWidth,
+          height: el.videoHeight,
         })
         this.invalidate()
       }
-      video.onloadeddata = () => this.invalidate()
-      video.onseeked = () => this.invalidate()
-      video.onerror = () => this.invalidate()
+      el.onloadeddata = () => this.invalidate()
+      el.onseeked = () => this.invalidate()
+      el.onerror = () => this.invalidate()
 
-      video.load()
+      el.load()
     }
 
-    // Calculate the correct seek time within the clip
     const timeInClip = Math.max(0, timeSec - layer.startTime)
     const seekTime = layer.trimStart + timeInClip
 
-    if (video.readyState >= 2) {
-      const timeDiff = Math.abs(video.currentTime - seekTime)
-      if (timeDiff > 0.05) {
-        video.currentTime = seekTime
-        this._drawPlaceholder(ctx, layer, rw, rh)
-        this.invalidate()
-      } else {
-        ctx.drawImage(video, -rw / 2, -rh / 2, rw, rh)
-      }
-    } else {
+    if (video.readyState < 2) {
       this._drawPlaceholder(ctx, layer, rw, rh)
+      return
     }
+
+    const timeDiff = Math.abs(video.currentTime - seekTime)
+    if (timeDiff > 0.2) {
+      video.currentTime = seekTime
+      this._drawPlaceholder(ctx, layer, rw, rh)
+      return
+    }
+
+    ctx.drawImage(video, -rw / 2, -rh / 2, rw, rh)
   }
 
   private _drawText(

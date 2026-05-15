@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   ArrowLeft,
+  ArrowCounterClockwise,
+  ArrowClockwise,
   CaretDown,
   Export,
   Sparkle,
@@ -24,9 +26,12 @@ import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/site/logo"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 import { LayoutPicker } from "@/components/editor/layout-picker"
+import { KeyboardShortcutsDialog } from "@/components/editor/panels/keyboard-shortcuts-dialog"
 import { SaveIndicator } from "@/components/editor/save-indicator"
 import { useEditorStore } from "@/lib/editor/editor-store"
 import { useHeyGenJobStore } from "@/lib/heygen/job-store"
+import { useTimelineStore } from "@/lib/editor/timeline-store"
+import { canUndo, canRedo, undo, redo } from "@/lib/editor/history"
 import { renameProject } from "@/lib/projects/repo"
 import { cn } from "@/lib/utils"
 
@@ -46,6 +51,8 @@ export function EditorHeader() {
         <Separator orientation="vertical" className="mx-2 h-5" />
         <ProjectMenu />
         <ProjectNameInput />
+        <Separator orientation="vertical" className="mx-1 h-5" />
+        <UndoRedoButtons />
         <SaveIndicator className="ml-2 hidden sm:inline-flex" />
       </div>
 
@@ -86,36 +93,48 @@ function HeyGenButton({ activeCount }: { activeCount: number }) {
 function ProjectMenu() {
   const router = useRouter()
   const project = useEditorStore((s) => s.project)
+  const shortcutsOpen = useEditorStore((s) => s.shortcutsDialogOpen)
+  const setShortcutsOpen = useEditorStore((s) => s.setShortcutsDialogOpen)
+
   if (!project) return <Logo href={null} showWordmark={false} />
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 gap-1 px-1.5">
-          <Logo href={null} showWordmark={false} />
-          <CaretDown size={12} weight="bold" className="text-muted-foreground" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel>{project.name}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/projects")}>
-          Back to projects
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() =>
-            toast.message("Project info", {
-              description: `${project.settings.canvasSize.width}×${project.settings.canvasSize.height} · ${project.settings.fps} fps`,
-            })
-          }
-        >
-          Project info
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>Keyboard shortcuts</DropdownMenuItem>
-        <DropdownMenuItem disabled>Export…</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 gap-1 px-1.5">
+            <Logo href={null} showWordmark={false} />
+            <CaretDown size={12} weight="bold" className="text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel>{project.name}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/projects")}>
+            Back to projects
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              toast.message("Project info", {
+                description: `${project.settings.canvasSize.width}×${project.settings.canvasSize.height} · ${project.settings.fps} fps`,
+              })
+            }
+          >
+            Project info
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
+            Keyboard shortcuts
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled>Export…</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <KeyboardShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
+    </>
   )
 }
 
@@ -184,5 +203,55 @@ function ProjectNameInput() {
           : "hover:bg-foreground/[0.07] cursor-pointer"
       )}
     />
+  )
+}
+
+function UndoRedoButtons() {
+  const [u, setU] = React.useState(false)
+  const [r, setR] = React.useState(false)
+  const restoreTracks = useTimelineStore((s) => s.restoreTracks)
+  const clearSelection = useTimelineStore((s) => s.clearSelection)
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setU(canUndo())
+      setR(canRedo())
+    }, 200)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Undo (Ctrl+Z)"
+        disabled={!u}
+        onClick={() => {
+          const result = undo()
+          if (result) {
+            restoreTracks(result.tracks)
+            clearSelection()
+          }
+        }}
+      >
+        <ArrowCounterClockwise size={14} weight="bold" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Redo (Ctrl+Shift+Z)"
+        disabled={!r}
+        onClick={() => {
+          const result = redo()
+          if (result) {
+            restoreTracks(result.tracks)
+            clearSelection()
+          }
+        }}
+      >
+        <ArrowClockwise size={14} weight="bold" />
+      </Button>
+    </div>
   )
 }

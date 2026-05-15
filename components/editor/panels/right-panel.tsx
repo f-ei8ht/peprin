@@ -4,6 +4,7 @@ import * as React from "react"
 import { Sliders, Wrench, Sparkle } from "@phosphor-icons/react/dist/ssr"
 
 import { PanelShell } from "@/components/editor/panel-shell"
+import { InspectorPanel } from "@/components/editor/panels/inspector-panel"
 import { HeyGenJobsPanel } from "@/components/editor/panels/heygen-jobs/jobs-panel"
 import { LipsyncDialog } from "@/components/editor/panels/lipsync/lipsync-dialog"
 import { TranslationDialog } from "@/components/editor/panels/translate/translation-dialog"
@@ -20,7 +21,6 @@ export function RightPanel() {
   const tab = useEditorStore((s) => s.rightTab)
   const setTab = useEditorStore((s) => s.setRightTab)
   const project = useEditorStore((s) => s.project)
-  const selectedCount = useEditorStore((s) => s.selectedClipIds.size)
 
   const [lipsyncVideo, setLipsyncVideo] = React.useState<{ url: string; name: string } | null>(null)
   const [translateVideo, setTranslateVideo] = React.useState<{ url: string; name: string } | null>(null)
@@ -59,7 +59,7 @@ export function RightPanel() {
 
         <div className="min-h-0 flex-1 overflow-auto p-4 text-sm">
           {tab === "inspector" ? (
-            <InspectorPlaceholder selectedCount={selectedCount} />
+            <InspectorPanel />
           ) : tab === "heygen" ? (
             <HeyGenJobsPanel
               onLipsyncClick={(url, name) => setLipsyncVideo({ url, name })}
@@ -95,25 +95,6 @@ export function RightPanel() {
         />
       )}
     </PanelShell>
-  )
-}
-
-function InspectorPlaceholder({ selectedCount }: { selectedCount: number }) {
-  if (selectedCount === 0) {
-    return (
-      <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-center">
-        <p className="text-foreground text-sm font-medium">Nothing selected</p>
-        <p className="text-xs">Pick a clip to see its properties.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-center">
-      <p className="text-foreground text-sm font-medium">
-        {selectedCount} clip{selectedCount === 1 ? "" : "s"} selected
-      </p>
-      <p className="text-xs">Inspector controls land in the next iteration.</p>
-    </div>
   )
 }
 

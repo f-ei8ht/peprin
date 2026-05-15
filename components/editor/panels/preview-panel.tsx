@@ -205,27 +205,6 @@ export function PreviewPanel() {
     compositor.invalidate()
   }, [project, compositor])
 
-  // Keyboard shortcuts
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
-
-      if (e.code === "Space") {
-        e.preventDefault()
-        playback.toggle()
-      } else if (e.code === "ArrowLeft") {
-        e.preventDefault()
-        playback.frameBackward()
-      } else if (e.code === "ArrowRight") {
-        e.preventDefault()
-        playback.frameForward()
-      }
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [playback])
-
   if (!project) return null
 
   const { canvasSize } = project.settings

@@ -20,6 +20,7 @@ export interface TimelineState {
   selectedElementIds: Set<string>
   zoom: number // pixels per second
   snapEnabled: boolean
+  rippleEnabled: boolean
 
   // Reactive getters
   duration: number // computed max end time across all elements
@@ -44,12 +45,19 @@ export interface TimelineState {
   trimElement: (elementId: string, trimStart: number, trimEnd: number) => void
   updateElement: (elementId: string, patch: Partial<TimelineElement>) => void
 
+  /** Takes a snapshot of current tracks for undo history. */
+  snapshotTracks: () => TimelineTrack[]
+  /** Restores tracks to a previous snapshot. */
+  restoreTracks: (tracks: TimelineTrack[]) => void
+
   setZoom: (zoom: number) => void
   toggleSnap: () => void
+  toggleRipple: () => void
 
   setSelectedElements: (ids: Iterable<string>) => void
   toggleSelectedElement: (id: string) => void
   clearSelection: () => void
+  selectAllElements: () => void
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => ({
@@ -57,6 +65,7 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   selectedElementIds: new Set(),
   zoom: BASE_PPS,
   snapEnabled: true,
+  rippleEnabled: false,
 
   get duration() {
     let max = 0
@@ -70,6 +79,13 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   },
 
   loadTracks: (tracks) => set({ tracks }),
+
+  snapshotTracks: () => {
+    const tracks = get().tracks
+    return JSON.parse(JSON.stringify(tracks))
+  },
+
+  restoreTracks: (tracks) => set({ tracks }),
 
   addTrack: (type, name) => {
     const id = nanoid(8)
@@ -172,6 +188,8 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
 
   toggleSnap: () => set((s) => ({ snapEnabled: !s.snapEnabled })),
 
+  toggleRipple: () => set((s) => ({ rippleEnabled: !s.rippleEnabled })),
+
   setSelectedElements: (ids) => set({ selectedElementIds: new Set(ids) }),
 
   toggleSelectedElement: (id) =>
@@ -183,4 +201,15 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     }),
 
   clearSelection: () => set({ selectedElementIds: new Set() }),
+
+  selectAllElements: () =>
+    set((s) => {
+      const ids = new Set<string>()
+      for (const t of s.tracks) {
+        for (const e of t.elements) {
+          ids.add(e.id)
+        }
+      }
+      return { selectedElementIds: ids }
+    }),
 }))

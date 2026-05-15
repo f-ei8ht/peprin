@@ -14,6 +14,11 @@ interface TimelineClipProps {
   zoom: number
   isSelected: boolean
   onPointerDown: (e: React.PointerEvent, elementId: string) => void
+  onTrimPointerDown: (
+    e: React.PointerEvent,
+    elementId: string,
+    side: "left" | "right"
+  ) => void
 }
 
 export function TimelineClip({
@@ -22,6 +27,7 @@ export function TimelineClip({
   zoom,
   isSelected,
   onPointerDown,
+  onTrimPointerDown,
 }: TimelineClipProps) {
   const left = element.startTime * zoom
   const width = Math.max(4, element.duration * zoom)
@@ -53,16 +59,17 @@ export function TimelineClip({
       {isSelected && (
         <>
           <button
-            className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-white/20 rounded-l-md"
+            className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize hover:bg-white/20 rounded-l-md z-10"
             onPointerDown={(e) => {
               e.stopPropagation()
-              // handled by trim logic in parent
+              onTrimPointerDown(e, element.id, "left")
             }}
           />
           <button
-            className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-white/20 rounded-r-md"
+            className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize hover:bg-white/20 rounded-r-md z-10"
             onPointerDown={(e) => {
               e.stopPropagation()
+              onTrimPointerDown(e, element.id, "right")
             }}
           />
         </>
@@ -75,6 +82,11 @@ interface TimelineTrackRowProps {
   track: TimelineTrack
   zoom: number
   onElementPointerDown: (e: React.PointerEvent, elementId: string) => void
+  onTrimPointerDown: (
+    e: React.PointerEvent,
+    elementId: string,
+    side: "left" | "right"
+  ) => void
   onTrackDrop: (e: React.DragEvent, trackId: string) => void
 }
 
@@ -82,6 +94,7 @@ export function TimelineTrackRow({
   track,
   zoom,
   onElementPointerDown,
+  onTrimPointerDown,
   onTrackDrop,
 }: TimelineTrackRowProps) {
   const selectedIds = useTimelineStore((s) => s.selectedElementIds)
@@ -113,6 +126,7 @@ export function TimelineTrackRow({
             zoom={zoom}
             isSelected={selectedIds.has(el.id)}
             onPointerDown={onElementPointerDown}
+            onTrimPointerDown={onTrimPointerDown}
           />
         ))}
       </div>

@@ -117,3 +117,24 @@ export async function updateProjectSettings(
     updatedAt: Date.now(),
   })
 }
+
+export async function updateProject(
+  id: string,
+  patch: Partial<Pick<ProjectRecord, "name" | "settings" | "timeline" | "thumbnailDataUrl">>
+): Promise<void> {
+  const db = getDB()
+  const existing = await db.projects.get(id)
+  if (!existing) throw new Error("Project not found")
+  const updates: Partial<ProjectRecord> = { updatedAt: Date.now() }
+  if (patch.name !== undefined) updates.name = patch.name
+  if (patch.settings !== undefined) {
+    updates.settings = { ...existing.settings, ...patch.settings } as ProjectSettings
+  }
+  if (patch.timeline !== undefined) {
+    updates.timeline = { ...existing.timeline, ...patch.timeline }
+  }
+  if (patch.thumbnailDataUrl !== undefined) {
+    updates.thumbnailDataUrl = patch.thumbnailDataUrl
+  }
+  await db.projects.update(id, updates)
+}
