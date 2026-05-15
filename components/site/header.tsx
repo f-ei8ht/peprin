@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils"
 
 const NAV_LINKS = [
   { label: "Editor", href: "/editor" },
-  { label: "Roadmap", href: "/roadmap" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
 ] as const

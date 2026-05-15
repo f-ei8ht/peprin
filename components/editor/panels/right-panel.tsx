@@ -1,14 +1,16 @@
 "use client"
 
-import { Sliders, Wrench } from "@phosphor-icons/react/dist/ssr"
+import { Sliders, Wrench, Sparkle } from "@phosphor-icons/react/dist/ssr"
 
 import { PanelShell } from "@/components/editor/panel-shell"
+import { HeyGenJobsPanel } from "@/components/editor/panels/heygen-jobs/jobs-panel"
 import { useEditorStore, type RightTab } from "@/lib/editor/editor-store"
 import { cn } from "@/lib/utils"
 
 const TABS: { id: RightTab; label: string; icon: React.ComponentType<{ size?: number; weight?: "bold" | "duotone" | "fill" | "regular" }> }[] = [
   { id: "inspector", label: "Inspector", icon: Sliders },
   { id: "settings", label: "Project", icon: Wrench },
+  { id: "heygen", label: "HeyGen", icon: Sparkle },
 ]
 
 export function RightPanel() {
@@ -52,6 +54,11 @@ export function RightPanel() {
         <div className="min-h-0 flex-1 overflow-auto p-4 text-sm">
           {tab === "inspector" ? (
             <InspectorPlaceholder selectedCount={selectedCount} />
+          ) : tab === "heygen" ? (
+            <HeyGenJobsPanel
+              onLipsyncClick={() => {}}
+              onTranslateClick={() => {}}
+            />
           ) : (
             <ProjectInfo project={project} />
           )}

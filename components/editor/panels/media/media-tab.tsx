@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils"
 import { MediaAssetCard } from "./media-asset-card"
 import { MediaImportProgress } from "./media-import-progress"
 import { MediaDropOverlay } from "./media-drop-overlay"
+import { LipsyncDialog } from "@/components/editor/panels/lipsync/lipsync-dialog"
+import { TranslationDialog } from "@/components/editor/panels/translate/translation-dialog"
 
 const ACCEPT = "video/*,audio/*,image/*"
 
@@ -31,6 +33,8 @@ export function MediaTab() {
   const [isDraggingOver, setDraggingOver] = React.useState(false)
   const dragCounter = React.useRef(0)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const [lipsyncTarget, setLipsyncTarget] = React.useState<{ url: string; name: string } | null>(null)
+  const [translateTarget, setTranslateTarget] = React.useState<{ url: string; name: string } | null>(null)
 
   React.useEffect(() => {
     if (!projectId) {
@@ -142,13 +146,40 @@ export function MediaTab() {
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {filtered.map((asset) => (
-              <MediaAssetCard key={asset.id} asset={asset} />
+              <MediaAssetCard
+                key={asset.id}
+                asset={asset}
+                onLipsync={(url, name) => setLipsyncTarget({ url, name })}
+                onTranslate={(url, name) => setTranslateTarget({ url, name })}
+              />
             ))}
           </div>
         )}
       </div>
 
       {isDraggingOver && projectId && <MediaDropOverlay />}
+
+      {lipsyncTarget && (
+        <LipsyncDialog
+          open={!!lipsyncTarget}
+          onOpenChange={(open) => {
+            if (!open) setLipsyncTarget(null)
+          }}
+          sourceVideoUrl={lipsyncTarget.url}
+          sourceVideoName={lipsyncTarget.name}
+        />
+      )}
+
+      {translateTarget && (
+        <TranslationDialog
+          open={!!translateTarget}
+          onOpenChange={(open) => {
+            if (!open) setTranslateTarget(null)
+          }}
+          sourceVideoUrl={translateTarget.url}
+          sourceVideoName={translateTarget.name}
+        />
+      )}
     </div>
   )
 }

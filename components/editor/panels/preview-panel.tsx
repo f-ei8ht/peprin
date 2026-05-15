@@ -30,6 +30,7 @@ import { useEditorStore } from "@/lib/editor/editor-store"
 import { usePlaybackStore } from "@/lib/editor/playback-store"
 import { useTimelineStore } from "@/lib/editor/timeline-store"
 import { useMediaStore } from "@/lib/media/store"
+import { getMediaBlob } from "@/lib/media/repo"
 import { formatTimecode } from "@/lib/time"
 import type { CompositorLayer } from "@/lib/renderer/compositor"
 
@@ -58,6 +59,60 @@ export function PreviewPanel() {
   // Collect timeline layers for compositor
   const tracks = useTimelineStore((s) => s.tracks)
   const mediaAssets = useMediaStore((s) => s.assets)
+  const blobUrlsRef = React.useRef<Map<string, string>>(new Map())
+
+  const resolveBlobUrl = React.useCallback(async (mediaId: string): Promise<string | null> => {
+    const cached = blobUrlsRef.current.get(mediaId)
+    if (cached) return cached
+
+    try {
+      const blob = await getMediaBlob(mediaId)
+      if (!blob) return null
+      const url = URL.createObjectURL(blob)
+      blobUrlsRef.current.set(mediaId, url)
+      return url
+    } catch {
+      return null
+    }
+  }, [])
+
+  const [videoBlobUrls, setVideoBlobUrls] = React.useState<Map<string, string>>(new Map())
+
+  // Pre-resolve blob URLs for video assets
+  React.useEffect(() => {
+    const videoIds = new Set<string>()
+    for (const track of tracks) {
+      for (const el of track.elements) {
+        if (el.type === "video") {
+          videoIds.add(el.mediaId)
+        }
+      }
+    }
+
+    let cancelled = false
+    ;(async () => {
+      const urls = new Map<string, string>()
+      for (const id of videoIds) {
+        const url = await resolveBlobUrl(id)
+        if (url) urls.set(id, url)
+      }
+      if (!cancelled) setVideoBlobUrls(urls)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [tracks, resolveBlobUrl])
+
+  // Cleanup blob URLs on unmount
+  React.useEffect(() => {
+    return () => {
+      for (const url of blobUrlsRef.current.values()) {
+        URL.revokeObjectURL(url)
+      }
+      blobUrlsRef.current.clear()
+    }
+  }, [])
 
   const buildLayers = React.useCallback((): CompositorLayer[] => {
     const layers: CompositorLayer[] = []
@@ -77,12 +132,13 @@ export function PreviewPanel() {
           rotation: el.rotation,
           opacity: el.opacity,
           sourceUrl: asset?.thumbnailDataUrl,
+          videoBlobUrl: el.type === "video" ? videoBlobUrls.get(el.mediaId) : undefined,
           name: el.name,
         })
       }
     }
     return layers
-  }, [tracks, mediaAssets])
+  }, [tracks, mediaAssets, videoBlobUrls])
 
   // Render loop — self-referencing via ref
   const renderFrame = React.useRef<() => void>(() => {})

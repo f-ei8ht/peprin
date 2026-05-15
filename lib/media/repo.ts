@@ -100,6 +100,92 @@ export async function deleteProjectMedia(projectId: string): Promise<void> {
   })
 }
 
+export interface ImportRemoteFileOptions {
+  projectId: string
+  url: string
+  name: string
+  kind: MediaAsset["kind"]
+  mimeType: string
+  thumbnailUrl?: string
+  thumbnailDataUrl?: string
+  durationSec?: number
+  width?: number
+  height?: number
+}
+
+export async function importRemoteFile({
+  projectId,
+  url,
+  name,
+  kind,
+  mimeType,
+  thumbnailUrl,
+  thumbnailDataUrl,
+  durationSec,
+  width,
+  height,
+}: ImportRemoteFileOptions): Promise<MediaAsset> {
+  const db = getDB()
+  const id = nanoid(14)
+
+  // Fetch the remote file as a blob
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch remote file: ${res.statusText}`)
+  const blob = await res.blob()
+
+  // Resolve thumbnail: if thumbnailUrl is provided but no data URL, fetch and convert
+  let resolvedThumbnail = thumbnailDataUrl
+  if (!resolvedThumbnail && thumbnailUrl) {
+    try {
+      const thumbRes = await fetch(thumbnailUrl)
+      if (thumbRes.ok) {
+        const thumbBlob = await thumbRes.blob()
+        resolvedThumbnail = await blobToDataUrl(thumbBlob)
+      }
+    } catch {
+      // thumbnail fetch failed — asset still works without it
+    }
+  }
+
+  const asset: MediaAsset = {
+    id,
+    projectId,
+    name,
+    kind,
+    mimeType,
+    byteSize: blob.size,
+    durationSec: durationSec ?? 0,
+    width,
+    height,
+    fps: undefined,
+    sampleRate: undefined,
+    channelCount: undefined,
+    thumbnailDataUrl: resolvedThumbnail,
+    createdAt: Date.now(),
+    version: MEDIA_VERSION,
+  }
+
+  await db.transaction(
+    "rw",
+    db.mediaAssets,
+    db.mediaBlobs,
+    async () => {
+      await db.mediaAssets.add(asset)
+      await db.mediaBlobs.add({ id, blob })
+    }
+  )
+  return asset
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error("Failed to convert blob to data URL"))
+    reader.readAsDataURL(blob)
+  })
+}
+
 function guessMime(name: string, kind: MediaAsset["kind"]): string {
   const ext = name.split(".").pop()?.toLowerCase() ?? ""
   if (kind === "video") {

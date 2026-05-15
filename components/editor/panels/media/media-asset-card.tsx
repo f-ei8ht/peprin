@@ -10,6 +10,7 @@ import {
   MusicNote,
   PencilSimple,
   TrashSimple,
+  Globe,
 } from "@phosphor-icons/react/dist/ssr"
 
 import { Button } from "@/components/ui/button"
@@ -35,12 +36,15 @@ import { formatBytes } from "@/lib/string"
 import { formatTimecode } from "@/lib/time"
 import { cn } from "@/lib/utils"
 import type { MediaAsset } from "@/lib/media/types"
+import { getMediaBlob } from "@/lib/media/repo"
 
 interface MediaAssetCardProps {
   asset: MediaAsset
+  onLipsync?: (url: string, name: string) => void
+  onTranslate?: (url: string, name: string) => void
 }
 
-export function MediaAssetCard({ asset }: MediaAssetCardProps) {
+export function MediaAssetCard({ asset, onLipsync, onTranslate }: MediaAssetCardProps) {
   const removeAsset = useMediaStore((s) => s.removeAsset)
   const renameAsset = useMediaStore((s) => s.renameAsset)
   const [renameOpen, setRenameOpen] = React.useState(false)
@@ -48,6 +52,26 @@ export function MediaAssetCard({ asset }: MediaAssetCardProps) {
   const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     event.dataTransfer.setData("application/x-peprin-media", asset.id)
     event.dataTransfer.effectAllowed = "copy"
+  }
+
+  const handleHeyGenAction = async (action: "lipsync" | "translate") => {
+    try {
+      const blob = await getMediaBlob(asset.id)
+      if (!blob) {
+        // For remote assets (HeyGen-generated), use the asset metadata
+        // The blob should exist since importRemoteFile stores it
+        return
+      }
+      // Create a temporary URL for the blob
+      const url = URL.createObjectURL(blob)
+      if (action === "lipsync" && onLipsync) {
+        onLipsync(url, asset.name)
+      } else if (action === "translate" && onTranslate) {
+        onTranslate(url, asset.name)
+      }
+    } catch {
+      // If blob access fails, skip
+    }
   }
 
   return (
@@ -107,6 +131,19 @@ export function MediaAssetCard({ asset }: MediaAssetCardProps) {
                 <PencilSimple size={12} weight="bold" />
                 Rename
               </DropdownMenuItem>
+              {asset.kind === "video" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleHeyGenAction("lipsync")}>
+                    <FilmStrip size={12} weight="bold" />
+                    Lipsync
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleHeyGenAction("translate")}>
+                    <Globe size={12} weight="bold" />
+                    Translate
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"

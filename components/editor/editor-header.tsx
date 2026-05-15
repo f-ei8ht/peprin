@@ -26,10 +26,13 @@ import { ThemeToggle } from "@/components/site/theme-toggle"
 import { LayoutPicker } from "@/components/editor/layout-picker"
 import { SaveIndicator } from "@/components/editor/save-indicator"
 import { useEditorStore } from "@/lib/editor/editor-store"
+import { useHeyGenJobStore } from "@/lib/heygen/job-store"
 import { renameProject } from "@/lib/projects/repo"
 import { cn } from "@/lib/utils"
 
 export function EditorHeader() {
+  const activeJobs = useHeyGenJobStore((s) => s.activeJobCount)
+
   return (
     <header className="bg-background flex h-12 items-center justify-between border-b px-3">
       <div className="flex min-w-0 items-center gap-2">
@@ -48,10 +51,7 @@ export function EditorHeader() {
 
       <div className="flex items-center gap-2">
         <LayoutPicker />
-        <Button variant="outline" size="sm" disabled>
-          <Sparkle size={14} weight="fill" className="text-amber-500" />
-          HeyGen
-        </Button>
+        <HeyGenButton activeCount={activeJobs} />
         <Button size="sm" disabled>
           <Export size={14} weight="bold" />
           Export
@@ -59,6 +59,27 @@ export function EditorHeader() {
         <ThemeToggle className="hidden sm:inline-flex" />
       </div>
     </header>
+  )
+}
+
+function HeyGenButton({ activeCount }: { activeCount: number }) {
+  const setRightTab = useEditorStore((s) => s.setRightTab)
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setRightTab("heygen")}
+      className="relative"
+    >
+      <Sparkle size={14} weight="fill" className="text-amber-500" />
+      HeyGen
+      {activeCount > 0 && (
+        <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+          {activeCount}
+        </span>
+      )}
+    </Button>
   )
 }
 

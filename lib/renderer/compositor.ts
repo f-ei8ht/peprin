@@ -19,6 +19,8 @@ export interface CompositorLayer {
   opacity: number
   /** URL or data URL to render. For images: the source. For video: a frame or thumbnail. */
   sourceUrl?: string
+  /** Blob URL for video playback (seeks to correct frame during render). */
+  videoBlobUrl?: string
   name: string
 }
 
@@ -31,6 +33,7 @@ export class Compositor {
   private _lastFrame = -1
   private _layers: CompositorLayer[] = []
   private _imageCache = new Map<string, ImageBitmap | HTMLImageElement>()
+  private _videoCache = new Map<string, HTMLVideoElement>()
 
   get width() {
     return this._width
@@ -55,6 +58,7 @@ export class Compositor {
     this._ctx = this._canvas.getContext("2d")
     this._lastFrame = -1
     this._imageCache.clear()
+    this._disposeVideos()
   }
 
   /** Set the layers to composite for the current frame. */
@@ -151,6 +155,13 @@ export class Compositor {
     const rw = 200
     const rh = 150
 
+    // Video playback: seek and draw frame
+    if (layer.type === "video" && layer.videoBlobUrl) {
+      this._drawVideoFrame(ctx, layer, layer.videoBlobUrl, rw, rh)
+      ctx.restore()
+      return
+    }
+
     if (layer.sourceUrl) {
       // Try to draw the image if cached
       const cached = this._imageCache.get(layer.sourceUrl)
@@ -166,6 +177,52 @@ export class Compositor {
     }
 
     ctx.restore()
+  }
+
+  private _drawVideoFrame(
+    ctx: OffscreenCanvasRenderingContext2D,
+    layer: CompositorLayer,
+    videoUrl: string,
+    rw: number,
+    rh: number
+  ) {
+    let video = this._videoCache.get(videoUrl)
+
+    if (!video) {
+      video = document.createElement("video")
+      video.src = videoUrl
+      video.muted = true
+      video.preload = "auto"
+      video.playsInline = true
+      video.setAttribute("playsinline", "")
+      this._videoCache.set(videoUrl, video)
+    }
+
+    // Calculate the time within the source media
+    const timeInLayer = 0 // current time relative to layer start is handled by caller
+    const seekTime = layer.trimStart + timeInLayer
+
+    // If video is ready and at approximately the right time, draw it
+    if (video.readyState >= 2) {
+      const timeDiff = Math.abs(video.currentTime - seekTime)
+      if (timeDiff > 0.05) {
+        // Need to seek — do it and invalidate for redraw
+        video.currentTime = seekTime
+        this._drawPlaceholder(ctx, layer, rw, rh)
+        this.invalidate()
+      } else {
+        // At the right time — draw the frame
+        ctx.drawImage(video, -rw / 2, -rh / 2, rw, rh)
+      }
+    } else {
+      // Video not ready yet — set up listeners and draw placeholder
+      if (video.readyState === 0) {
+        video.load()
+      }
+      video.onseeked = () => this.invalidate()
+      video.onloadeddata = () => this.invalidate()
+      this._drawPlaceholder(ctx, layer, rw, rh)
+    }
   }
 
   private _drawPlaceholder(
@@ -216,6 +273,15 @@ export class Compositor {
     } catch {
       // silently fail — placeholder will continue to show
     }
+  }
+
+  private _disposeVideos() {
+    for (const video of this._videoCache.values()) {
+      video.pause()
+      video.src = ""
+      video.load()
+    }
+    this._videoCache.clear()
   }
 
   private _drawGrid(ctx: OffscreenCanvasRenderingContext2D, w: number, h: number) {

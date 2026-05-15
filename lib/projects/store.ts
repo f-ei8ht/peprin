@@ -8,11 +8,11 @@ import { persist, createJSONStorage } from "zustand/middleware"
 
 import * as repo from "@/lib/projects/repo"
 import type {
-  CreateProjectInput,
   ProjectRecord,
   ProjectSortKey,
   SortOrder,
 } from "@/lib/db/types"
+import type { CreateProjectInput } from "@/lib/projects/repo"
 
 export type ProjectsViewMode = "grid" | "list"
 

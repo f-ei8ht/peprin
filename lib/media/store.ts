@@ -30,6 +30,17 @@ interface MediaState {
   reset: () => void
 
   importFiles: (files: FileList | File[]) => Promise<void>
+  importRemoteFile: (options: {
+    url: string
+    name: string
+    kind: "video" | "audio" | "image"
+    mimeType: string
+    thumbnailUrl?: string
+    thumbnailDataUrl?: string
+    durationSec?: number
+    width?: number
+    height?: number
+  }) => Promise<void>
   removeAsset: (id: string) => Promise<void>
   renameAsset: (id: string, name: string) => Promise<void>
   clearImports: () => void
@@ -94,6 +105,19 @@ export const useMediaStore = create<MediaState>((set, get) => ({
           error instanceof Error ? error.message : "Couldn't import file"
         patchTask(set, task.id, { status: "error", error: message })
       }
+    }
+  },
+
+  importRemoteFile: async (options) => {
+    const projectId = get().projectId
+    if (!projectId) return
+
+    try {
+      const asset = await repo.importRemoteFile({ projectId, ...options })
+      set((state) => ({ assets: [asset, ...state.assets] }))
+    } catch (error) {
+      console.error("Failed to import remote file", error)
+      throw error
     }
   },
 

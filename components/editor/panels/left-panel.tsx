@@ -9,6 +9,7 @@ import {
 
 import { PanelShell } from "@/components/editor/panel-shell"
 import { MediaTab } from "@/components/editor/panels/media/media-tab"
+import { AvatarsTab } from "@/components/editor/panels/avatars/avatars-tab"
 import { useEditorStore, type LeftTab } from "@/lib/editor/editor-store"
 import { cn } from "@/lib/utils"
 
@@ -70,6 +71,8 @@ export function LeftPanel() {
           <div className="flex min-h-0 flex-1 flex-col">
             {tab === "media" ? (
               <MediaTab />
+            ) : tab === "avatars" ? (
+              <AvatarsTab />
             ) : (
               <ComingSoonPlaceholder label={TABS.find((t) => t.id === tab)?.label ?? ""} />
             )}
